@@ -7,7 +7,7 @@ import Input from '../components/shared/Input';
 import Select from '../components/shared/Select';
 import CurrencyInput from '../components/shared/CurrencyInput';
 import FileInput from '../components/shared/FileInput';
-import { handleApiError } from '../utils/errorHandler';
+import { applyApiErrors, handleApiError } from '../utils/errorHandler';
 import { ProductType, type Produk as ProdukType, type Kategori as KategoriType } from '../types/domain';
 
 interface PaginatedResponse<T> {
@@ -87,7 +87,7 @@ const Produk = () => {
       queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
       handleCloseModal();
     },
-    onError: (error) => alert(handleApiError(error).message)
+    onError: (error) => applyApiErrors(error, setFormErrors)
   });
 
   const updateMutation = useMutation({
@@ -98,7 +98,7 @@ const Produk = () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       handleCloseModal();
     },
-    onError: (error) => alert(handleApiError(error).message)
+    onError: (error) => applyApiErrors(error, setFormErrors)
   });
 
   const deleteMutation = useMutation({

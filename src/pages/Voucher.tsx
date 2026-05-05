@@ -5,7 +5,7 @@ import DataTable, { type Column } from '../components/shared/DataTable';
 import Modal from '../components/shared/Modal';
 import Input from '../components/shared/Input';
 import Select from '../components/shared/Select';
-import { handleApiError } from '../utils/errorHandler';
+import { applyApiErrors, handleApiError } from '../utils/errorHandler';
 import { formatDate } from '../utils/formatters';
 import type { Voucher } from '../types/domain';
 
@@ -65,7 +65,7 @@ const VoucherPage = () => {
       queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
       handleCloseModal();
     },
-    onError: (error) => alert(handleApiError(error).message),
+    onError: (error) => applyApiErrors(error, setFormErrors),
   });
 
   const updateMutation = useMutation({
@@ -76,7 +76,7 @@ const VoucherPage = () => {
       queryClient.invalidateQueries({ queryKey: ['vouchers'] });
       handleCloseModal();
     },
-    onError: (error) => alert(handleApiError(error).message),
+    onError: (error) => applyApiErrors(error, setFormErrors),
   });
 
   const deleteMutation = useMutation({

@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import api from '../lib/axios';
 import Input from '../components/shared/Input';
-import { handleApiError } from '../utils/errorHandler';
+import { applyApiErrors } from '../utils/errorHandler';
 import { Package } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof typeof formData, string>>>({});
 
   const loginMutation = useMutation({
     mutationFn: async (payload: typeof formData) => {
@@ -16,33 +17,28 @@ const Login = () => {
       return response.data.data;
     },
     onSuccess: (data) => {
-
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-
       navigate('/', { replace: true });
     },
-    onError: (error) => {
-      const result = handleApiError(error);
-      alert(result.message);
-    }
+    onError: (error) => applyApiErrors(error, setFormErrors)
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Reset error text saat user mengetik
+    if (formErrors[e.target.name as keyof typeof formData]) {
+      setFormErrors((prev) => ({ ...prev, [e.target.name]: undefined }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.email || !formData.password) {
-      return alert('Email dan password wajib diisi');
-    }
     loginMutation.mutate(formData);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background Decor */}
       <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-500/10 blur-3xl rounded-full"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-emerald-500/10 blur-3xl rounded-full"></div>
 
@@ -70,6 +66,7 @@ const Login = () => {
               placeholder="admin@gmail.com"
               value={formData.email}
               onChange={handleChange}
+              error={formErrors.email}
               required
             />
 
@@ -80,6 +77,7 @@ const Login = () => {
               placeholder="••••••••"
               value={formData.password}
               onChange={handleChange}
+              error={formErrors.password}
               required
             />
 

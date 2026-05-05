@@ -5,7 +5,7 @@ import DataTable, { type Column } from '../components/shared/DataTable';
 import Modal from '../components/shared/Modal';
 import Input from '../components/shared/Input';
 import Select from '../components/shared/Select';
-import { handleApiError } from '../utils/errorHandler';
+import { applyApiErrors, handleApiError } from '../utils/errorHandler';
 import { formatDate } from '../utils/formatters';
 import { BusinessUnit, type Kategori as KategoriType } from '../types/domain';
 
@@ -69,12 +69,8 @@ const Kategori = () => {
       queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
       handleCloseModal();
     },
-    onError: (error) => {
-      const result = handleApiError(error);
-      alert(result.message);
-    }
+    onError: (error) => applyApiErrors(error, setFormErrors) // <- UPDATE DISINI
   });
-
   const updateMutation = useMutation({
     mutationFn: async ({ id, payload }: { id: number; payload: Partial<KategoriFormPayload> }) => {
       await api.patch(`/categories/${id}`, payload);
@@ -83,10 +79,7 @@ const Kategori = () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       handleCloseModal();
     },
-    onError: (error) => {
-      const result = handleApiError(error);
-      alert(result.message);
-    }
+    onError: (error) => applyApiErrors(error, setFormErrors)
   });
 
   const deleteMutation = useMutation({
