@@ -57,7 +57,8 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Kategori = lazy(() => import('./pages/Kategori'));
 const Produk = lazy(() => import('./pages/Produk'));
 const Transaksi = lazy(() => import('./pages/Transaksi'));
-const HistoryTransaksi = lazy(() => import('./pages/HistoryTransaksi')); // <-- Tambahkan ini
+const HistoryTransaksi = lazy(() => import('./pages/HistoryTransaksi'));
+const Voucher = lazy(() => import('./pages/Voucher')); // <-- Tambahkan ini
 const Login = lazy(() => import('./pages/Login'));
 
 const App = () => {
@@ -72,6 +73,7 @@ const App = () => {
               <Route path="/" element={<Dashboard />} />
               <Route path="/kategori" element={<Kategori />} />
               <Route path="/produk" element={<Produk />} />
+              <Route path="/voucher" element={<Voucher />} />
               <Route path="/transaksi" element={<Transaksi />} />
               <Route path="/history-transaksi" element={<HistoryTransaksi />} />
             </Route>
@@ -128,6 +130,7 @@ const Navbar = () => {
       case '/': return 'Dashboard Analitik';
       case '/kategori': return 'Manajemen Kategori';
       case '/produk': return 'Manajemen Produk & Stok';
+      case '/voucher': return 'Manajemen Voucher';
       case '/transaksi': return 'Pencatatan Transaksi';
       case '/history-transaksi': return 'Riwayat Transaksi';
       default: return 'Bumantara';
@@ -683,7 +686,7 @@ export default Select;
 
 <file path="src/components/Sidebar.tsx">
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Tags, Package, ArrowRightLeft, LogOut } from 'lucide-react';
+import { LayoutDashboard, Tags, Package, ArrowRightLeft, LogOut, Ticket } from 'lucide-react';
 const Sidebar = () => {
   const navigate = useNavigate();
   const userString = localStorage.getItem('user');
@@ -696,6 +699,7 @@ const Sidebar = () => {
   const menuItems = [
     { title: 'Dashboard', path: '/', icon: LayoutDashboard },
     { title: 'Kategori', path: '/kategori', icon: Tags },
+    { title: 'Voucher', path: '/voucher', icon: Ticket },
     { title: 'Produk & Stok', path: '/produk', icon: Package },
     { title: 'Transaksi', path: '/transaksi', icon: ArrowRightLeft },
     { title: 'History', path: '/history-transaksi', icon: ArrowRightLeft },
@@ -1951,6 +1955,7 @@ interface ProdukFormPayload {
   stok: number;
   hargaBeli: number;
   hargaJual: number;
+  hargaJualWeekend: number;
 }
 
 const initialFormState: ProdukFormPayload = {
@@ -1960,31 +1965,32 @@ const initialFormState: ProdukFormPayload = {
   stok: 0,
   hargaBeli: 0,
   hargaJual: 0,
+  hargaJualWeekend: 0,
 };
 
-// FIX 1: Membuat intersection type agar memenuhi konstrain 'Record<string, unknown>'
+
 type ProdukTableItem = ProdukType & Record<string, unknown>;
 
 const Produk = () => {
   const queryClient = useQueryClient();
 
-  // State untuk Data Table & Pagination
+
   const [searchTerm, setSearchTerm] = useState('');
   const [cursorHistory, setCursorHistory] = useState<(number | undefined)[]>([undefined]);
   const currentCursor = cursorHistory[cursorHistory.length - 1];
 
-  // State untuk Modal Form Produk
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState<ProdukFormPayload>(initialFormState);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof ProdukFormPayload, string>>>({});
 
-  // State untuk Modal Adjust Stock (Opname)
+
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [selectedProdukId, setSelectedProdukId] = useState<number | null>(null);
   const [stockAdjustment, setStockAdjustment] = useState({ jumlahPenyesuaian: 0, keterangan: '' });
 
-  // Queries
+
   const { data: produkData, isLoading } = useQuery({
     queryKey: ['products', searchTerm, currentCursor],
     queryFn: async () => {
@@ -2004,7 +2010,7 @@ const Produk = () => {
     },
   });
 
-  // Mutations
+
   const createMutation = useMutation({
     mutationFn: async (payload: Omit<ProdukFormPayload, 'kategoriId' | 'tipe'> & { kategoriId: number, tipe: ProductType }) => {
       await api.post('/products', payload);
@@ -2046,7 +2052,7 @@ const Produk = () => {
     onError: (error) => alert(handleApiError(error).message)
   });
 
-  // Handlers
+
   const handleSearch = (val: string) => {
     setSearchTerm(val);
     setCursorHistory([undefined]);
@@ -2071,6 +2077,7 @@ const Produk = () => {
         stok: produk.stok,
         hargaBeli: produk.hargaBeli,
         hargaJual: produk.hargaJual,
+        hargaJualWeekend: produk.hargaJualWeekend ?? 0,
       });
     } else {
       setEditingId(null);
@@ -2168,7 +2175,7 @@ const Produk = () => {
       <DataTable<ProdukTableItem>
         title="Daftar Master Produk"
         columns={columns}
-        // FIX 1.5: Lempar item dengan tipe alias yang sudah dibuat
+
         data={(produkData?.items as ProdukTableItem[]) || []}
         serverSide={true}
         searchTerm={searchTerm}
@@ -2205,6 +2212,14 @@ const Produk = () => {
           />
           <CurrencyInput label="Harga Beli / Modal" name="hargaBeli" value={formData.hargaBeli} onValueChange={handleCurrencyChange} />
           <CurrencyInput label="Harga Jual" name="hargaJual" value={formData.hargaJual} onValueChange={handleCurrencyChange} />
+          {formData.tipe === ProductType.JASA && (
+            <CurrencyInput
+              label="Harga Jual Weekend"
+              name="hargaJualWeekend"
+              value={formData.hargaJualWeekend || 0}
+              onValueChange={handleCurrencyChange}
+            />
+          )}
         </div>
         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
           <button onClick={handleCloseModal} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">Batal</button>
@@ -2251,7 +2266,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ShoppingCart, Plus, Minus, Trash2, UploadCloud, Calendar } from 'lucide-react';
 import api from '../lib/axios';
-import { BusinessUnit, TransactionType, type Produk } from '../types/domain';
+import { BusinessUnit, TransactionType, type Produk, type Voucher } from '../types/domain';
 import { handleApiError } from '../utils/errorHandler';
 import CurrencyInput from '../components/shared/CurrencyInput';
 interface CartItem extends Produk {
@@ -2259,11 +2274,17 @@ interface CartItem extends Produk {
   kuantitas: number;
   diskonInput: number;
   expiredAtInput?: string;
+  originalHargaJual: number;
 }
 interface PaginatedResponse<T> {
   items: T[];
   meta: { nextCursor: number | null; hasNextPage: boolean };
 }
+const isWeekend = (dateStr: string) => {
+  const date = dateStr ? new Date(dateStr) : new Date();
+  const day = date.getDay();
+  return day === 0 || day === 6;
+};
 const Transaksi = () => {
   const queryClient = useQueryClient();
   const [businessUnit, setBusinessUnit] = useState<BusinessUnit>(BusinessUnit.CAFE);
@@ -2278,6 +2299,13 @@ const Transaksi = () => {
         `/products?limit=100&businessUnit=${businessUnit}`
       );
       return response.data.data.items;
+    },
+  });
+  const { data: voucherData } = useQuery({
+    queryKey: ['vouchers-active'],
+    queryFn: async () => {
+      const response = await api.get<{ data: PaginatedResponse<Voucher> }>(`/vouchers?limit=100`);
+      return response.data.data.items.filter(v => v.isActive);
     },
   });
   const displayProducts = useMemo(() => {
@@ -2330,11 +2358,31 @@ const Transaksi = () => {
           alert('Mencapai batas maksimal stok yang tersedia!');
           return prev;
         }
-        return prev.map((item) =>
-          item.id === produk.id ? { ...item, kuantitas: item.kuantitas + 1 } : item
-        );
+        const isWknd = isWeekend(waktuTransaksi);
+        return prev.map((item) => {
+          if (item.id === produk.id) {
+            let updatedHargaJual = item.hargaJual;
+            if (item.tipe === 'JASA' && item.originalHargaJual && item.hargaJualWeekend) {
+              updatedHargaJual = isWknd ? item.hargaJualWeekend : item.originalHargaJual;
+            }
+            return { ...item, kuantitas: item.kuantitas + 1, hargaJual: updatedHargaJual };
+          }
+          return item;
+        });
       }
-      return [...prev, { ...produk, cartId: Math.random().toString(36).substr(2, 9), kuantitas: 1, diskonInput: 0 }];
+      const isWknd = isWeekend(waktuTransaksi);
+      let appliedHargaJual = produk.hargaJual;
+      if (tipeTransaksi === TransactionType.PEMASUKAN && produk.tipe === 'JASA' && produk.hargaJualWeekend && isWknd) {
+        appliedHargaJual = produk.hargaJualWeekend;
+      }
+      return [...prev, {
+        ...produk,
+        hargaJual: appliedHargaJual,
+        originalHargaJual: produk.hargaJual,
+        cartId: Math.random().toString(36).substr(2, 9),
+        kuantitas: 1,
+        diskonInput: 0
+      }];
     });
   };
   const handleUpdateCart = (cartId: string, field: keyof CartItem, value: any) => {
@@ -2428,7 +2476,9 @@ const Transaksi = () => {
                   </div>
                   <div className="flex justify-between items-end mt-2">
                     <span className="text-indigo-600 font-black text-sm">
-                      Rp {new Intl.NumberFormat('id-ID').format(tipeTransaksi === TransactionType.PEMASUKAN ? Number(produk.hargaJual) : Number(produk.hargaBeli))}
+                      Rp {new Intl.NumberFormat('id-ID').format(tipeTransaksi === TransactionType.PEMASUKAN ?
+                        (isWeekend(waktuTransaksi) && produk.tipe === 'JASA' && produk.hargaJualWeekend ? Number(produk.hargaJualWeekend) : Number(produk.hargaJual))
+                        : Number(produk.hargaBeli))}
                     </span>
                     {produk.tipe === 'BARANG' && (
                       <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${produk.stok > 0 ? 'bg-slate-200 text-slate-600' : 'bg-red-100 text-red-600'}`}>
@@ -2478,55 +2528,50 @@ const Transaksi = () => {
                     </button>
                   </div>
                 </div>
-
                 <div className="mt-3 space-y-3 pt-3 border-t border-slate-50">
-                  {/* FITUR BARU: Preset Diskon Karyawan */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Voucher / Preset Diskon</label>
-                    <div className="flex flex-wrap gap-2 mb-1">
-                      <button
-                        onClick={() => {
-                          const harga = tipeTransaksi === TransactionType.PEMASUKAN ? Number(item.hargaJual) : Number(item.hargaBeli);
-                          handleUpdateCart(item.cartId, 'diskonInput', harga * item.kuantitas);
-                        }}
-                        className="text-[10px] px-2 py-1 bg-emerald-50 text-emerald-600 rounded-md font-bold hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                      >
-                        Karyawan (Free)
-                      </button>
-                      <button
-                        onClick={() => {
-                          const harga = tipeTransaksi === TransactionType.PEMASUKAN ? Number(item.hargaJual) : Number(item.hargaBeli);
-                          handleUpdateCart(item.cartId, 'diskonInput', (harga * item.kuantitas) * 0.5);
-                        }}
-                        className="text-[10px] px-2 py-1 bg-indigo-50 text-indigo-600 rounded-md font-bold hover:bg-indigo-100 transition-colors border border-indigo-200 cursor-pointer"
-                      >
-                        Diskon 50%
-                      </button>
-                      <button
-                        onClick={() => handleUpdateCart(item.cartId, 'diskonInput', 0)}
-                        className="text-[10px] px-2 py-1 bg-slate-100 text-slate-600 rounded-md font-bold hover:bg-slate-200 transition-colors border border-slate-200 cursor-pointer"
-                      >
-                        Reset
-                      </button>
+                  {tipeTransaksi === TransactionType.PEMASUKAN && (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Voucher / Preset Diskon</label>
+                      <div className="flex flex-wrap gap-2 mb-1">
+
+                        {voucherData?.map((voucher) => (
+                          <button
+                            key={voucher.id}
+                            onClick={() => {
+                              const harga = Number(item.hargaJual);
+                              const diskonPersen = Number(voucher.persentase) / 100;
+                              handleUpdateCart(item.cartId, 'diskonInput', (harga * item.kuantitas) * diskonPersen);
+                            }}
+                            className="text-[10px] px-2 py-1 bg-indigo-50 text-indigo-600 rounded-md font-bold hover:bg-indigo-100 transition-colors border border-indigo-200 cursor-pointer"
+                          >
+                            {voucher.nama} ({voucher.persentase}%)
+                          </button>
+                        ))}
+
+                        <button
+                          onClick={() => handleUpdateCart(item.cartId, 'diskonInput', 0)}
+                          className="text-[10px] px-2 py-1 bg-slate-100 text-slate-600 rounded-md font-bold hover:bg-slate-200 transition-colors border border-slate-200 cursor-pointer"
+                        >
+                          Reset
+                        </button>
+                      </div>
+
+                      <CurrencyInput
+                        label="Atau Nominal Manual (Rp)"
+                        name={`diskon-${item.cartId}`}
+                        value={item.diskonInput}
+                        onValueChange={(_, val) => handleUpdateCart(item.cartId, 'diskonInput', val)}
+                      />
                     </div>
-
-                    {/* Input Nominal Manual Tetap Ada */}
-                    <CurrencyInput
-                      label="Atau Nominal Manual (Rp)"
-                      name={`diskon-${item.cartId}`}
-                      value={item.diskonInput}
-                      onValueChange={(_, val) => handleUpdateCart(item.cartId, 'diskonInput', val)}
-                    />
-                  </div>
-
+                  )}
                   {tipeTransaksi === TransactionType.PENGELUARAN && item.tipe === 'BARANG' && (
-                    <div className="flex flex-col gap-1.5 w-full">
-                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Expired Date (Opsional)</label>
+                    <div className="flex flex-col gap-1.5 w-full bg-orange-50/50 p-2 rounded-lg border border-orange-100">
+                      <label className="text-[11px] font-bold text-orange-700 uppercase tracking-wider ml-1">Expired Date (Opsional)</label>
                       <input
                         type="date"
                         value={item.expiredAtInput || ''}
                         onChange={(e) => handleUpdateCart(item.cartId, 'expiredAtInput', e.target.value)}
-                        className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 outline-none focus:border-indigo-500"
+                        className="w-full px-3 py-2 text-sm rounded-xl border border-orange-200 outline-none focus:border-orange-500 bg-white"
                       />
                     </div>
                   )}
@@ -2545,12 +2590,14 @@ const Transaksi = () => {
                   type="datetime-local"
                   value={waktuTransaksi}
                   onChange={(e) => setWaktuTransaksi(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 outline-none focus:border-indigo-500 bg-white"
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 outline-none focus:border-indigo-500 bg-white text-black"
                 />
               </div>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Foto Bukti (Nota/Transfer)</label>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">
+                {tipeTransaksi === TransactionType.PENGELUARAN ? 'Foto Bukti (Nota Beli / Foto Expired)' : 'Foto Bukti (Transfer/QRIS)'}
+              </label>
               <div className="relative">
                 <UploadCloud size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
@@ -2560,14 +2607,16 @@ const Transaksi = () => {
                   className="w-full pl-9 pr-3 py-1.5 text-sm rounded-xl border border-slate-200 bg-white file:hidden text-slate-600 cursor-pointer"
                 />
               </div>
-              {fotoBukti && <span className="text-[10px] text-emerald-600 font-medium ml-1">File terpilih: {fotoBukti.name}</span>}
+              {fotoBukti && <span className="text-[10px] text-emerald-600 font-bold ml-1">File: {fotoBukti.name}</span>}
             </div>
           </div>
           <div className="border-t border-slate-200 border-dashed pt-3">
-            <div className="flex justify-between items-center mb-1 text-sm">
-              <span className="text-slate-500 font-medium">Total Diskon</span>
-              <span className="text-rose-500 font-bold">- Rp {new Intl.NumberFormat('id-ID').format(cartSummary.totalDiskon)}</span>
-            </div>
+            {tipeTransaksi === TransactionType.PEMASUKAN && (
+              <div className="flex justify-between items-center mb-1 text-sm">
+                <span className="text-slate-500 font-medium">Total Diskon</span>
+                <span className="text-rose-500 font-bold">- Rp {new Intl.NumberFormat('id-ID').format(cartSummary.totalDiskon)}</span>
+              </div>
+            )}
             <div className="flex justify-between items-end mt-2">
               <span className="text-sm font-bold text-slate-600 uppercase tracking-wider">Total Bayar</span>
               <span className="text-2xl font-black text-indigo-600">Rp {new Intl.NumberFormat('id-ID').format(cartSummary.subtotal)}</span>
@@ -2586,6 +2635,286 @@ const Transaksi = () => {
   );
 };
 export default Transaksi;
+</file>
+
+<file path="src/pages/Voucher.tsx">
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '../lib/axios';
+import DataTable, { type Column } from '../components/shared/DataTable';
+import Modal from '../components/shared/Modal';
+import Input from '../components/shared/Input';
+import Select from '../components/shared/Select';
+import { handleApiError } from '../utils/errorHandler';
+import { formatDate } from '../utils/formatters';
+import type { Voucher } from '../types/domain';
+
+interface PaginatedResponse<T> {
+  items: T[];
+  meta: {
+    nextCursor: number | null;
+    hasNextPage: boolean;
+  };
+}
+
+type VoucherTableItem = Voucher & Record<string, unknown>;
+
+interface VoucherFormPayload {
+  nama: string;
+  persentase: number | '';
+  isActive: string;
+}
+
+const initialFormState: VoucherFormPayload = {
+  nama: '',
+  persentase: '',
+  isActive: 'true',
+};
+
+const VoucherPage = () => {
+  const queryClient = useQueryClient();
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [cursorHistory, setCursorHistory] = useState<(number | undefined)[]>([undefined]);
+  const currentCursor = cursorHistory[cursorHistory.length - 1];
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [formData, setFormData] = useState<VoucherFormPayload>(initialFormState);
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof VoucherFormPayload, string>>>({});
+
+  const { data } = useQuery({
+    queryKey: ['vouchers', searchTerm, currentCursor],
+    queryFn: async () => {
+      const params = new URLSearchParams({ limit: '10' });
+      if (searchTerm) params.append('search', searchTerm);
+      if (currentCursor) params.append('cursor', currentCursor.toString());
+
+      const response = await api.get<{ data: PaginatedResponse<Voucher> }>(`/vouchers?${params.toString()}`);
+      return response.data.data;
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (payload: { nama: string; persentase: number; isActive: boolean }) => {
+      await api.post('/vouchers', payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vouchers'] });
+      handleCloseModal();
+    },
+    onError: (error) => alert(handleApiError(error).message),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: Partial<{ nama: string; persentase: number; isActive: boolean }> }) => {
+      await api.patch(`/vouchers/${id}`, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vouchers'] });
+      handleCloseModal();
+    },
+    onError: (error) => alert(handleApiError(error).message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/vouchers/${id}`);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vouchers'] }),
+    onError: (error) => alert(handleApiError(error).message),
+  });
+
+  const handleSearch = (val: string) => {
+    setSearchTerm(val);
+    setCursorHistory([undefined]);
+  };
+
+  const handleNextPage = () => {
+    if (data?.meta.hasNextPage && data.meta.nextCursor) {
+      setCursorHistory((prev) => [...prev, data.meta.nextCursor as number]);
+    }
+  };
+
+  const handlePrevPage = () => {
+    setCursorHistory((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
+  };
+
+  const handleOpenModal = (voucher?: Voucher) => {
+    setFormErrors({});
+    if (voucher) {
+      setEditingId(voucher.id);
+      setFormData({
+        nama: voucher.nama,
+        persentase: voucher.persentase,
+        isActive: voucher.isActive ? 'true' : 'false',
+      });
+    } else {
+      setEditingId(null);
+      setFormData(initialFormState);
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setFormData(initialFormState);
+    setFormErrors({});
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'number' ? (value === '' ? '' : Number(value)) : value,
+    }));
+    if (formErrors[name as keyof VoucherFormPayload]) {
+      setFormErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors: Partial<Record<keyof VoucherFormPayload, string>> = {};
+    if (!formData.nama || formData.nama.length < 3) {
+      errors.nama = 'Nama voucher minimal 3 karakter';
+    }
+    if (formData.persentase === '' || formData.persentase < 0 || formData.persentase > 100) {
+      errors.persentase = 'Persentase harus antara 0 dan 100';
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!validateForm()) return;
+
+    const payload = {
+      nama: formData.nama,
+      persentase: Number(formData.persentase),
+      isActive: formData.isActive === 'true',
+    };
+
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, payload });
+    } else {
+      createMutation.mutate(payload);
+    }
+  };
+
+  const handleDelete = (voucher: Voucher) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus voucher "${voucher.nama}"?`)) {
+      deleteMutation.mutate(voucher.id);
+    }
+  };
+
+  const columns: Column<VoucherTableItem>[] = [
+    { header: 'Nama Voucher', accessor: 'nama', render: (val) => <span className="font-bold text-slate-800">{String(val)}</span> },
+    {
+      header: 'Persentase Diskon',
+      accessor: 'persentase',
+      render: (val) => <span className="font-bold text-indigo-600">{Number(val)}%</span>
+    },
+    {
+      header: 'Status',
+      accessor: 'isActive',
+      render: (val) => (
+        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider ${val ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+          }`}>
+          {val ? 'AKTIF' : 'NONAKTIF'}
+        </span>
+      )
+    },
+    {
+      header: 'Dibuat Pada',
+      accessor: 'createdAt',
+      render: (val) => <span className="text-slate-500">{formatDate(String(val))}</span>
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Voucher & Diskon</h1>
+        <p className="text-sm text-slate-500">Kelola master data voucher dan preset diskon untuk kasir.</p>
+      </div>
+
+      <DataTable<VoucherTableItem>
+        title="Daftar Voucher"
+        columns={columns}
+        data={(data?.items as VoucherTableItem[]) || []}
+        serverSide={true}
+        searchTerm={searchTerm}
+        onSearchChange={handleSearch}
+        onAdd={() => handleOpenModal()}
+        onEdit={(row) => handleOpenModal(row as Voucher)}
+        onDelete={(row) => handleDelete(row as Voucher)}
+        hasNextPage={data?.meta.hasNextPage}
+        hasPrevPage={cursorHistory.length > 1}
+        onNextPage={handleNextPage}
+        onPrevPage={handlePrevPage}
+      />
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title={editingId ? 'Edit Voucher' : 'Tambah Voucher Baru'}
+      >
+        <div className="flex flex-col gap-4">
+          <Input
+            label="Nama Voucher"
+            name="nama"
+            placeholder="Contoh: Karyawan, Driver, Promo Kemerdekaan..."
+            value={formData.nama}
+            onChange={handleChange}
+            error={formErrors.nama}
+            disabled={createMutation.isPending || updateMutation.isPending}
+          />
+          <Input
+            label="Persentase Diskon (%)"
+            name="persentase"
+            type="number"
+            placeholder="Contoh: 40, 20, 10..."
+            value={formData.persentase}
+            onChange={handleChange}
+            error={formErrors.persentase}
+            disabled={createMutation.isPending || updateMutation.isPending}
+          />
+          <Select
+            label="Status Voucher"
+            name="isActive"
+            value={formData.isActive}
+            onChange={handleChange}
+            disabled={createMutation.isPending || updateMutation.isPending}
+            options={[
+              { value: 'true', label: 'Aktif' },
+              { value: 'false', label: 'Nonaktif' },
+            ]}
+          />
+
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-100">
+            <button
+              onClick={handleCloseModal}
+              className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+export default VoucherPage;
 </file>
 
 <file path="src/providers/QueryProvider.tsx">
@@ -2674,6 +3003,7 @@ export interface Produk {
   stok: number;
   hargaBeli: number;
   hargaJual: number;
+  hargaJualWeekend?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -2738,6 +3068,13 @@ export interface DashboardSummary {
       };
     };
   }>;
+}
+
+export interface Voucher {
+  id: number;
+  nama: string;
+  persentase: number;
+  isActive: boolean;
 }
 </file>
 

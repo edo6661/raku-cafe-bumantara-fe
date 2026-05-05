@@ -307,7 +307,7 @@ const Transaksi = () => {
                         type="date"
                         value={item.expiredAtInput || ''}
                         onChange={(e) => handleUpdateCart(item.cartId, 'expiredAtInput', e.target.value)}
-                        className="w-full px-3 py-2 text-sm rounded-xl border border-orange-200 outline-none focus:border-orange-500 bg-white"
+                        className="w-full px-3 py-2 text-sm rounded-xl border border-orange-200 outline-none focus:border-orange-500 bg-white text-black"
                       />
                     </div>
                   )}

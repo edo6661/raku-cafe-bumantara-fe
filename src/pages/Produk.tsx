@@ -6,6 +6,7 @@ import Modal from '../components/shared/Modal';
 import Input from '../components/shared/Input';
 import Select from '../components/shared/Select';
 import CurrencyInput from '../components/shared/CurrencyInput';
+import FileInput from '../components/shared/FileInput';
 import { handleApiError } from '../utils/errorHandler';
 import { ProductType, type Produk as ProdukType, type Kategori as KategoriType } from '../types/domain';
 
@@ -37,28 +38,24 @@ const initialFormState: ProdukFormPayload = {
   hargaJualWeekend: 0,
 };
 
-
 type ProdukTableItem = ProdukType & Record<string, unknown>;
 
 const Produk = () => {
   const queryClient = useQueryClient();
 
-
   const [searchTerm, setSearchTerm] = useState('');
   const [cursorHistory, setCursorHistory] = useState<(number | undefined)[]>([undefined]);
   const currentCursor = cursorHistory[cursorHistory.length - 1];
-
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState<ProdukFormPayload>(initialFormState);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof ProdukFormPayload, string>>>({});
 
-
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [selectedProdukId, setSelectedProdukId] = useState<number | null>(null);
-  const [stockAdjustment, setStockAdjustment] = useState({ jumlahPenyesuaian: 0, keterangan: '' });
-
+  const [stockAdjustment, setStockAdjustment] = useState<{ jumlahPenyesuaian: number | string, keterangan: string }>({ jumlahPenyesuaian: '', keterangan: '' });
+  const [fotoOpname, setFotoOpname] = useState<File | null>(null);
 
   const { data: produkData, isLoading } = useQuery({
     queryKey: ['products', searchTerm, currentCursor],
@@ -78,7 +75,6 @@ const Produk = () => {
       return response.data.data.items;
     },
   });
-
 
   const createMutation = useMutation({
     mutationFn: async (payload: Omit<ProdukFormPayload, 'kategoriId' | 'tipe'> & { kategoriId: number, tipe: ProductType }) => {
@@ -110,9 +106,12 @@ const Produk = () => {
     onError: (error) => alert(handleApiError(error).message)
   });
 
+
   const adjustStockMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: number; payload: { jumlahPenyesuaian: number, keterangan: string } }) => {
-      await api.post(`/products/${id}/adjust`, payload);
+    mutationFn: async ({ id, payload }: { id: number; payload: FormData }) => {
+      await api.post(`/products/${id}/adjust`, payload, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -120,7 +119,6 @@ const Produk = () => {
     },
     onError: (error) => alert(handleApiError(error).message)
   });
-
 
   const handleSearch = (val: string) => {
     setSearchTerm(val);
@@ -164,12 +162,15 @@ const Produk = () => {
   const handleOpenStockModal = (produk: ProdukType) => {
     setSelectedProdukId(produk.id);
     setStockAdjustment({ jumlahPenyesuaian: 0, keterangan: '' });
+    setFotoOpname(null);
     setIsStockModalOpen(true);
   };
 
   const handleCloseStockModal = () => {
     setIsStockModalOpen(false);
     setSelectedProdukId(null);
+    setStockAdjustment({ jumlahPenyesuaian: 0, keterangan: '' });
+    setFotoOpname(null);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -244,7 +245,6 @@ const Produk = () => {
       <DataTable<ProdukTableItem>
         title="Daftar Master Produk"
         columns={columns}
-
         data={(produkData?.items as ProdukTableItem[]) || []}
         serverSide={true}
         searchTerm={searchTerm}
@@ -304,7 +304,10 @@ const Produk = () => {
           <Input
             label="Jumlah Penyesuaian" type="number"
             value={stockAdjustment.jumlahPenyesuaian}
-            onChange={(e) => setStockAdjustment(p => ({ ...p, jumlahPenyesuaian: Number(e.target.value) }))}
+            onChange={(e) => {
+              const val = e.target.value;
+              setStockAdjustment(p => ({ ...p, jumlahPenyesuaian: val === '' ? '' : Number(val) }));
+            }}
           />
           <Input
             label="Keterangan Audit"
@@ -312,14 +315,30 @@ const Produk = () => {
             value={stockAdjustment.keterangan}
             onChange={(e) => setStockAdjustment(p => ({ ...p, keterangan: e.target.value }))}
           />
+
+          <FileInput
+            label="Foto Bukti (Expired / Beli Manual) - Opsional"
+            accept="image/*"
+            onChange={(e) => setFotoOpname(e.target.files?.[0] || null)}
+          />
+          {fotoOpname && <span className="text-[10px] text-emerald-600 font-bold ml-1 -mt-2">Terpilih: {fotoOpname.name}</span>}
         </div>
+
         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
           <button onClick={handleCloseStockModal} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">Batal</button>
           <button
-            onClick={() => adjustStockMutation.mutate({ id: selectedProdukId!, payload: stockAdjustment })}
-            className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl cursor-pointer"
+            onClick={() => {
+              const formData = new FormData();
+              formData.append('jumlahPenyesuaian', Number(stockAdjustment.jumlahPenyesuaian).toString());
+              formData.append('keterangan', stockAdjustment.keterangan);
+              if (fotoOpname) formData.append('fotoBukti', fotoOpname);
+
+              adjustStockMutation.mutate({ id: selectedProdukId!, payload: formData });
+            }}
+            disabled={adjustStockMutation.isPending}
+            className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl cursor-pointer disabled:opacity-50"
           >
-            Simpan Penyesuaian
+            {adjustStockMutation.isPending ? 'Menyimpan...' : 'Simpan Penyesuaian'}
           </button>
         </div>
       </Modal>
