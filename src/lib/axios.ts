@@ -1,6 +1,6 @@
 import axios from "axios";
 const api = axios.create({
-  baseURL: "https://api.raku.globalindo.tech/",
+  baseURL: "https://api.raku.globalindo.tech/api/v1",
   headers: {
     "Content-Type": "application/json",
   },
