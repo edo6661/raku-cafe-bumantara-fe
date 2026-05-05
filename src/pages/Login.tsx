@@ -53,7 +53,7 @@ const Login = () => {
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-black text-slate-900 tracking-tight">
-          Login ke Bumantara
+          Login ke Raku
         </h2>
         <p className="mt-2 text-center text-sm text-slate-500 font-medium">
           Sistem ERP Point of Sale & Inventory

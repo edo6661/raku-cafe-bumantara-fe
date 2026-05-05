@@ -43,7 +43,7 @@ const VoucherPage = () => {
   const [formData, setFormData] = useState<VoucherFormPayload>(initialFormState);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof VoucherFormPayload, string>>>({});
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['vouchers', searchTerm, currentCursor],
     queryFn: async () => {
       const params = new URLSearchParams({ limit: '10' });
@@ -61,6 +61,8 @@ const VoucherPage = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vouchers'] });
+      queryClient.invalidateQueries({ queryKey: ['vouchers-active'] });
+      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
       handleCloseModal();
     },
     onError: (error) => alert(handleApiError(error).message),
@@ -203,6 +205,7 @@ const VoucherPage = () => {
         title="Daftar Voucher"
         columns={columns}
         data={(data?.items as VoucherTableItem[]) || []}
+        isLoading={isLoading}
         serverSide={true}
         searchTerm={searchTerm}
         onSearchChange={handleSearch}

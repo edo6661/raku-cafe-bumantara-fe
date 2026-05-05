@@ -1,85 +1,138 @@
-This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
+di hampir semua halaman kan pasti ada:
+  const { data: produkData, isLoading } = useQuery({
 
-<file_summary>
-This section contains a summary of this file.
 
-<purpose>
-This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
-It is designed to be easily consumable by AI systems for analysis, code review,
-or other automated processes.
-</purpose>
+ada isLoading ya, tolong pakai isLoading nya agar ui ux nya lebih baik, terus juga bukan hanya useQuery, useMutation nya juga, tolong yang teliti dan jangan ada yang terlewat.
 
-<file_format>
-The content is organized as follows:
-1. This summary section
-2. Repository information
-3. Directory structure
-4. Repository files (if enabled)
-5. Multiple file entries, each consisting of:
-  - File path as an attribute
-  - Full contents of the file
-</file_format>
 
-<usage_guidelines>
-- This file should be treated as read-only. Any changes should be made to the
-  original repository files, not this packed version.
-- When processing this file, use the file path to distinguish
-  between different files in the repository.
-- Be aware that this file may contain sensitive information. Handle it with
-  the same level of security as you would the original repository.
-</usage_guidelines>
+<file path="src/pages/AuditLog.tsx">
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { ShieldAlert } from 'lucide-react';
+import api from '../lib/axios';
+import DataTable, { type Column } from '../components/shared/DataTable';
+import { formatDate } from '../utils/formatters';
+import type { AuditLog } from '../types/domain';
 
-<notes>
-- Some files may have been excluded based on .gitignore rules and Repomix's configuration
-- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
-- Only files matching these patterns are included: src/**/*, package.json, vite.config.ts, tsconfig.json, prisma/schema.prisma, prisma/seeds/, prisma/seed.ts
-- Files matching these patterns are excluded: **/*.test.ts, dist/, **/*.js
-- Files matching patterns in .gitignore are excluded
-- Files matching default ignore patterns are excluded
-- Files are sorted by Git change count (files with more changes are at the bottom)
-</notes>
+interface PaginatedResponse<T> {
+  items: T[];
+  meta: { nextCursor: number | null; hasNextPage: boolean };
+}
 
-</file_summary>
 
-<directory_structure>
-package.json
-src/App.tsx
-src/components/layouts/RootLayout.tsx
-src/components/Navbar.tsx
-src/components/shared/CurrencyInput.tsx
-src/components/shared/DataTable.tsx
-src/components/shared/FileInput.tsx
-src/components/shared/Input.tsx
-src/components/shared/Modal.tsx
-src/components/shared/Select.tsx
-src/components/Sidebar.tsx
-src/hooks/useCrud.ts
-src/hooks/useForm.ts
-src/index.css
-src/lib/axios.ts
-src/main.tsx
-src/pages/Dashboard.tsx
-src/pages/HistoryTransaksi.tsx
-src/pages/Home.tsx
-src/pages/Kategori.tsx
-src/pages/Login.tsx
-src/pages/PageLoader.tsx
-src/pages/Produk.tsx
-src/pages/Transaksi.tsx
-src/pages/Voucher.tsx
-src/providers/QueryProvider.tsx
-src/types/api_response.ts
-src/types/common.ts
-src/types/domain.ts
-src/utils/errorHandler.ts
-src/utils/formatters.ts
-src/utils/storage.ts
-tsconfig.json
-vite.config.ts
-</directory_structure>
+type AuditLogTableItem = AuditLog & Record<string, unknown>;
 
-<files>
-This section contains the contents of the repository's files.
+const AuditLogPage = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [cursorHistory, setCursorHistory] = useState<(number | undefined)[]>([undefined]);
+  const currentCursor = cursorHistory[cursorHistory.length - 1];
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['audit-logs', searchTerm, currentCursor],
+    queryFn: async () => {
+      const params = new URLSearchParams({ limit: '15' });
+      if (searchTerm) params.append('search', searchTerm);
+      if (currentCursor) params.append('cursor', currentCursor.toString());
+
+      const response = await api.get<{ data: PaginatedResponse<AuditLog> }>(`/audit-logs?${params.toString()}`);
+      return response.data.data;
+    },
+  });
+
+  const handleSearch = (val: string) => {
+    setSearchTerm(val);
+    setCursorHistory([undefined]);
+  };
+
+  const handleNextPage = () => {
+    if (data?.meta.hasNextPage && data.meta.nextCursor) {
+      setCursorHistory((prev) => [...prev, data.meta.nextCursor as number]);
+    }
+  };
+
+  const handlePrevPage = () => setCursorHistory((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
+
+  const columns: Column<AuditLogTableItem>[] = [
+    {
+      header: 'Waktu',
+      accessor: 'createdAt',
+      render: (val) => <span className="text-slate-600 font-medium whitespace-nowrap">{formatDate(String(val))}</span>
+    },
+    {
+      header: 'User / Aktor',
+      accessor: 'username',
+      render: (val) => (
+        <span className="font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md">
+          {String(val)}
+        </span>
+      )
+    },
+    {
+      header: 'Aksi',
+      accessor: 'action',
+      render: (val) => {
+        const action = String(val);
+        const colors = {
+          CREATE: 'bg-emerald-100 text-emerald-700',
+          UPDATE: 'bg-blue-100 text-blue-700',
+          DELETE: 'bg-rose-100 text-rose-700'
+        }[action] || 'bg-slate-100 text-slate-700';
+
+        return <span className={`px-2.5 py-1 rounded text-[10px] font-bold tracking-wider ${colors}`}>{action}</span>;
+      }
+    },
+    {
+      header: 'Modul (Entity)',
+      accessor: 'entityName',
+      render: (val, row) => (
+        <div>
+          <span className="font-bold text-slate-700">{String(val)}</span>
+          <span className="ml-2 text-[11px] text-slate-400">ID: {row.entityId}</span>
+        </div>
+      )
+    }
+  ];
+
+
+  const expandedRowRender = (row: AuditLogTableItem) => (
+    <div className="p-4 bg-slate-900 rounded-xl overflow-x-auto shadow-inner m-4 mt-0">
+      <div className="flex items-center gap-2 mb-3 border-b border-slate-700 pb-2">
+        <ShieldAlert size={16} className="text-indigo-400" />
+        <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest">Detail Log Perubahan Data</span>
+      </div>
+      <pre className="text-[11px] font-mono text-emerald-400 leading-relaxed">
+        {JSON.stringify(row.changes, null, 2)}
+      </pre>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Audit Log (System History)</h1>
+        <p className="text-sm text-slate-500">Pantau seluruh aktivitas user (Create, Update, Delete) pada sistem.</p>
+      </div>
+
+      <DataTable<AuditLogTableItem>
+        title="Daftar Aktivitas Sistem"
+        columns={columns}
+        data={(data?.items as AuditLogTableItem[]) || []}
+        isLoading={isLoading}
+        serverSide={true}
+        searchTerm={searchTerm}
+        onSearchChange={handleSearch}
+        expandedRowRender={expandedRowRender}
+        hasNextPage={data?.meta.hasNextPage}
+        hasPrevPage={cursorHistory.length > 1}
+        onNextPage={handleNextPage}
+        onPrevPage={handlePrevPage}
+      />
+    </div>
+  );
+};
+
+export default AuditLogPage;
+</file>
 
 <file path="package.json">
 {
@@ -105,6 +158,7 @@ This section contains the contents of the repository's files.
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.2",
+    "recharts": "^3.8.1",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.0"
   },
@@ -139,7 +193,8 @@ const Kategori = lazy(() => import('./pages/Kategori'));
 const Produk = lazy(() => import('./pages/Produk'));
 const Transaksi = lazy(() => import('./pages/Transaksi'));
 const HistoryTransaksi = lazy(() => import('./pages/HistoryTransaksi'));
-const Voucher = lazy(() => import('./pages/Voucher')); // <-- Tambahkan ini
+const AuditLog = lazy(() => import('./pages/AuditLog'));
+const Voucher = lazy(() => import('./pages/Voucher'));
 const Login = lazy(() => import('./pages/Login'));
 
 const App = () => {
@@ -157,6 +212,7 @@ const App = () => {
               <Route path="/voucher" element={<Voucher />} />
               <Route path="/transaksi" element={<Transaksi />} />
               <Route path="/history-transaksi" element={<HistoryTransaksi />} />
+              <Route path="/audit-logs" element={<AuditLog />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -217,281 +273,6 @@ const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: C
   );
 };
 export default CurrencyInput;
-</file>
-
-<file path="src/components/shared/DataTable.tsx">
-import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
-
-export interface Column<T> {
-  header: string;
-  accessor: keyof T | string;
-  render?: (value: unknown, row: T) => React.ReactNode;
-}
-
-interface DataTableProps<T> {
-  title: string;
-  columns: Column<T>[];
-  data: T[];
-  onAdd?: () => void;
-  onEdit?: (item: T) => void;
-  onDelete?: (item: T) => void;
-  expandedRowRender?: (row: T) => React.ReactNode;
-  serverSide?: boolean;
-  searchTerm?: string;
-  onSearchChange?: (val: string) => void;
-  page?: number;
-  totalPages?: number;
-  onPageChange?: (page: number) => void;
-  hasNextPage?: boolean;
-  hasPrevPage?: boolean;
-  onNextPage?: () => void;
-  onPrevPage?: () => void;
-}
-
-const DataTable = <T extends Record<string, unknown>>({
-  title, columns, data, onAdd, onEdit, onDelete, expandedRowRender,
-  serverSide = false, searchTerm = '', onSearchChange,
-  page = 1, totalPages = 1, onPageChange,
-  hasNextPage, hasPrevPage, onNextPage, onPrevPage
-}: DataTableProps<T>) => {
-
-  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
-  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
-
-  useEffect(() => {
-    if (serverSide && onSearchChange) {
-      const timeoutId = setTimeout(() => {
-        if (localSearchTerm !== searchTerm) {
-          onSearchChange(localSearchTerm);
-        }
-      }, 500);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [localSearchTerm, serverSide, onSearchChange, searchTerm]);
-
-  const toggleRow = (rowIndex: number) => {
-    setExpandedRows((prev) => ({ ...prev, [rowIndex]: !prev[rowIndex] }));
-  };
-
-  const filteredData = useMemo(() => {
-    if (serverSide) return data;
-    if (!localSearchTerm) return data;
-
-    const lowercasedTerm = localSearchTerm.toLowerCase();
-    return data.filter((row) => {
-      return columns.some((col) => {
-        const value = row[col.accessor as keyof T];
-        if (value == null) return false;
-        return String(value).toLowerCase().includes(lowercasedTerm);
-      });
-    });
-  }, [data, localSearchTerm, columns, serverSide]);
-
-  const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (onEdit || onDelete ? 1 : 0);
-
-  const getPageNumbers = () => {
-    const delta = 1;
-    const range: Array<number | string> = [];
-    for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
-      range.push(i);
-    }
-    if (page - delta > 2) range.unshift("...");
-    if (page + delta < totalPages - 1) range.push("...");
-    range.unshift(1);
-    if (totalPages > 1) range.push(totalPages);
-    return range;
-  };
-
-  return (
-    <div className="bg-white rounded-[20px] shadow-sm border border-slate-200/80 overflow-hidden flex flex-col transition-all duration-300">
-
-      {/* Header Section */}
-      <div className="p-5 md:px-6 md:py-5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-slate-100">
-        <div className="w-full lg:w-auto">
-          <div className="flex items-center gap-3 mb-1">
-            <h2 className="text-lg font-bold text-slate-800 tracking-tight">{title}</h2>
-            {!serverSide && (
-              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-slate-200/60 shrink-0">
-                {filteredData.length} Data
-              </span>
-            )}
-          </div>
-          <p className="text-[13px] text-slate-500 font-medium">Kelola dan pantau informasi operasional secara real-time.</p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-          <div className="relative w-full sm:w-64 group">
-            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
-            <input
-              type="text"
-              placeholder="Cari data..."
-              value={localSearchTerm}
-              onChange={(e) => setLocalSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400 shadow-sm/50"
-            />
-          </div>
-
-          {onAdd && (
-            <button
-              onClick={onAdd}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-3 sm:py-2.5 rounded-xl hover:bg-indigo-700 hover:shadow-lg transition-all duration-300 font-bold text-[13px] active:scale-95 cursor-pointer shrink-0"
-            >
-              <Plus size={18} strokeWidth={2.5} />
-              Tambah Data
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Table Section */}
-      <div className="overflow-x-auto custom-scrollbar relative">
-        <table className="w-full text-sm text-left border-collapse min-w-[600px]">
-          <thead>
-            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200">
-              {expandedRowRender && <th className="px-4 py-4 w-10 text-center"></th>}
-              {columns.map((col, index) => (
-                <th key={index} className="px-6 py-4 whitespace-nowrap">
-                  {col.header}
-                </th>
-              ))}
-              {(onEdit || onDelete) && (
-                <th className="px-6 py-4 text-center whitespace-nowrap w-24 sticky right-0 bg-slate-50 border-l border-slate-200/60 z-10 shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.03)]">Aksi</th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredData.length > 0 ? (
-              filteredData.map((row, rowIndex) => {
-                const isExpanded = !!expandedRows[rowIndex];
-                return (
-                  <React.Fragment key={rowIndex}>
-                    <tr
-                      onClick={() => {
-                        if (expandedRowRender) toggleRow(rowIndex);
-                      }}
-                      className={`transition-colors duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50' : 'hover:bg-slate-50/50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
-                    >
-                      {expandedRowRender && (
-                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-indigo-600 transition-colors">
-                          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                        </td>
-                      )}
-
-                      {columns.map((col, colIndex) => (
-                        <td key={colIndex} className="px-6 py-4 text-slate-700 whitespace-nowrap font-medium">
-                          {col.render ? col.render(row[col.accessor as keyof T], row) : String(row[col.accessor as keyof T] ?? '')}
-                        </td>
-                      ))}
-
-                      {/* Kolom Aksi yang Sticky */}
-                      {(onEdit || onDelete) && (
-                        <td
-                          className={`px-6 py-4 sticky right-0 border-l border-slate-100 z-10 transition-colors duration-200 ${isExpanded ? 'bg-indigo-50/30' : 'bg-white group-hover:bg-slate-50'} shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.02)]`}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div className="flex justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
-                            {onEdit && (
-                              <button onClick={() => onEdit(row)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-100 rounded-lg transition-all cursor-pointer">
-                                <Edit2 size={16} />
-                              </button>
-                            )}
-                            {onDelete && (
-                              <button onClick={() => onDelete(row)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all cursor-pointer">
-                                <Trash2 size={16} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-
-                    {/* Expanded Row */}
-                    {isExpanded && expandedRowRender && (
-                      <tr className="bg-slate-50/50">
-                        <td colSpan={totalCols} className="px-0 sm:px-6 py-0 border-b border-slate-100">
-                          <div className="animate-in fade-in slide-in-from-top-2 duration-300 overflow-x-auto w-full">
-                            {expandedRowRender(row)}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan={totalCols} className="px-6 py-20 text-center bg-white">
-                  <div className="flex flex-col items-center max-w-sm mx-auto">
-                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
-                      <FileX2 size={28} className="text-slate-400" />
-                    </div>
-                    <h3 className="text-slate-800 font-bold mb-1">Data tidak ditemukan</h3>
-                    <p className="text-slate-500 text-[13px] font-medium leading-relaxed">
-                      Coba sesuaikan filter atau kata kunci pencarian Anda.
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination Section */}
-      {serverSide && (totalPages > 1 || hasNextPage !== undefined) && (
-        <div className="p-4 md:p-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
-          <span className="text-[13px] font-medium text-slate-500 text-center sm:text-left">
-            {hasNextPage !== undefined ? (
-              "Navigasi Data Halaman"
-            ) : (
-              <>Halaman <strong className="text-slate-900">{page}</strong> dari <strong className="text-slate-900">{totalPages}</strong></>
-            )}
-          </span>
-
-          <div className="flex items-center justify-center gap-1.5 w-full sm:w-auto">
-            <button
-              onClick={() => onPrevPage ? onPrevPage() : onPageChange?.(page - 1)}
-              disabled={onPrevPage ? !hasPrevPage : page === 1}
-              className="px-3 md:px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-200 flex items-center gap-1.5 cursor-pointer"
-            >
-              <ChevronLeft size={18} />
-              {hasNextPage !== undefined && <span className="text-sm font-bold hidden sm:block">Prev</span>}
-            </button>
-
-            {hasNextPage === undefined && getPageNumbers().map((num, idx) => (
-              num === "..." ? (
-                <span key={idx} className="px-2 text-slate-400 font-bold tracking-widest">...</span>
-              ) : (
-                <button
-                  key={idx}
-                  onClick={() => onPageChange?.(num as number)}
-                  className={`min-w-[44px] h-[44px] flex items-center justify-center rounded-xl text-[13px] font-bold transition-all cursor-pointer border ${page === num
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                >
-                  {num}
-                </button>
-              )
-            ))}
-
-            <button
-              onClick={() => onNextPage ? onNextPage() : onPageChange?.(page + 1)}
-              disabled={onNextPage ? !hasNextPage : page === totalPages}
-              className="px-3 md:px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-200 flex items-center gap-1.5 cursor-pointer"
-            >
-              {hasNextPage !== undefined && <span className="text-sm font-bold hidden sm:block">Next</span>}
-              <ChevronRight size={18} />
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default DataTable;
 </file>
 
 <file path="src/components/shared/FileInput.tsx">
@@ -784,7 +565,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 </file>
 
 <file path="src/pages/Dashboard.tsx">
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   TrendingUp,
@@ -794,17 +575,20 @@ import {
   Package,
   ArrowUpRight,
   ArrowDownRight,
-  Filter
+  Filter,
+  BarChart3
 } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip, ResponsiveContainer, Cell
+} from 'recharts';
 import api from '../lib/axios';
 import { BusinessUnit, type DashboardSummary } from '../types/domain';
 import { formatDate } from '../utils/formatters';
 
 const Dashboard = () => {
-
   const [filterPeriod, setFilterPeriod] = useState<string>('monthly');
   const [filterUnit, setFilterUnit] = useState<BusinessUnit | ''>('');
-
 
   const { data: dashboardData, isLoading, isError } = useQuery({
     queryKey: ['dashboard-summary', filterPeriod, filterUnit],
@@ -826,6 +610,31 @@ const Dashboard = () => {
       maximumFractionDigits: 0,
     }).format(value);
   };
+
+  // --- DATA PREPARATION UNTUK GRAFIK ---
+  const { topSellingData, financialChartData } = useMemo(() => {
+    if (!dashboardData) return { topSellingData: [], financialChartData: [] };
+
+    // 1. Data Top 5 Produk Terlaris
+    const top5 = [...dashboardData.inventory]
+      .filter(item => item.terjual > 0)
+      .sort((a, b) => b.terjual - a.terjual)
+      .slice(0, 5)
+      .map(item => ({
+        // Potong nama jika terlalu panjang agar rapi di sumbu X
+        name: item.nama.length > 15 ? item.nama.substring(0, 15) + '...' : item.nama,
+        Terjual: item.terjual,
+        fullName: item.nama
+      }));
+
+    // 2. Data Perbandingan Keuangan
+    const finance = [
+      { name: 'Pemasukan', value: dashboardData.financial.pemasukan, fill: '#10b981' }, // emerald-500
+      { name: 'Pengeluaran', value: dashboardData.financial.pengeluaran, fill: '#f43f5e' } // rose-500
+    ];
+
+    return { topSellingData: top5, financialChartData: finance };
+  }, [dashboardData]);
 
   if (isLoading) {
     return (
@@ -853,7 +662,7 @@ const Dashboard = () => {
       {/* HEADER & FILTER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-white p-5 rounded-[20px] shadow-sm border border-slate-200/80">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Dashboard Analitik</h1>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
           <p className="text-sm text-slate-500 mt-1">
             Ringkasan performa pada periode <strong className="text-slate-700">{formatDate(period.startDate).split(' ')[0]} - {formatDate(period.endDate).split(' ')[0]}</strong>
           </p>
@@ -944,6 +753,76 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* CHARTS SECTION */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top 5 Chart */}
+        <div className="bg-white p-5 rounded-[20px] shadow-sm border border-slate-200/80 flex flex-col">
+          <h2 className="text-base font-bold text-slate-800 mb-6 flex items-center gap-2">
+            <BarChart3 size={18} className="text-indigo-500" /> Top 5 Produk Terlaris
+          </h2>
+          <div className="flex-1 min-h-[250px] w-full">
+            {topSellingData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topSellingData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <RechartsTooltip
+                    cursor={{ fill: '#f1f5f9' }}
+                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                    labelStyle={{ color: '#64748b', marginBottom: '4px' }}
+                  />
+                  <Bar dataKey="Terjual" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                <Package size={32} className="mb-2 text-slate-300" />
+                <p className="text-sm font-medium">Belum ada produk terjual</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Financial Comparison Chart */}
+        <div className="bg-white p-5 rounded-[20px] shadow-sm border border-slate-200/80 flex flex-col">
+          <h2 className="text-base font-bold text-slate-800 mb-6 flex items-center gap-2">
+            <Wallet size={18} className="text-emerald-500" /> Perbandingan Keuangan
+          </h2>
+          <div className="flex-1 min-h-[250px] w-full">
+            {financial.pemasukan > 0 || financial.pengeluaran > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={financialChartData} margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b', fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    tickFormatter={(val) => `Rp${val / 1000}k`}
+                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <RechartsTooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                    cursor={{ fill: '#f1f5f9' }}
+                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '13px', fontWeight: 'bold' }}
+                  />
+                  <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={60}>
+                    {financialChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                <Wallet size={32} className="mb-2 text-slate-300" />
+                <p className="text-sm font-medium">Belum ada transaksi</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* INVENTORY MOVEMENT TABLE */}
         <div className="xl:col-span-2 bg-white rounded-[20px] shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
@@ -957,10 +836,10 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto custom-scrollbar flex-1">
+          <div className="overflow-x-auto custom-scrollbar flex-1 max-h-[400px]">
             <table className="w-full text-sm text-left">
-              <thead>
-                <tr className="bg-slate-50/50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200/60">
+              <thead className="sticky top-0 bg-white z-10 shadow-sm">
+                <tr className="bg-slate-50/80 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200/60 backdrop-blur-sm">
                   <th className="px-6 py-4">Nama Produk</th>
                   <th className="px-6 py-4 text-center">Stok Masuk</th>
                   <th className="px-6 py-4 text-center">Stok Terjual</th>
@@ -1007,7 +886,7 @@ const Dashboard = () => {
         </div>
 
         {/* EXPIRING PRODUCTS ALERT */}
-        <div className="xl:col-span-1 bg-white rounded-[20px] shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
+        <div className="xl:col-span-1 bg-white rounded-[20px] shadow-sm border border-slate-200/80 overflow-hidden flex flex-col h-full">
           <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-orange-50/30">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600">
@@ -1018,12 +897,12 @@ const Dashboard = () => {
                 <p className="text-xs text-orange-600/80 font-medium mt-0.5">Berakhir dalam &lt; 30 Hari</p>
               </div>
             </div>
-            <span className="bg-orange-600 text-white text-xs font-bold px-2 py-1 rounded-lg">
+            <span className="bg-orange-600 text-white text-xs font-bold px-2 py-1 rounded-lg shadow-sm shadow-orange-600/20">
               {expiringProducts.length}
             </span>
           </div>
 
-          <div className="p-4 flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3">
+          <div className="p-4 flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 max-h-[400px]">
             {expiringProducts.length > 0 ? (
               expiringProducts.map((item) => {
                 const daysLeft = Math.ceil((new Date(item.expiredAt).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
@@ -1352,6 +1231,7 @@ interface KategoriFormPayload {
   nama: string;
   businessUnit: BusinessUnit | '';
 }
+type KategoriTableItem = KategoriType & Record<string, unknown>;
 
 const initialFormState: KategoriFormPayload = {
   nama: '',
@@ -1393,6 +1273,8 @@ const Kategori = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['categories-all'] });
+      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
       handleCloseModal();
     },
     onError: (error) => {
@@ -1531,10 +1413,10 @@ const Kategori = () => {
         <p className="text-sm text-slate-500">Kelola kategori produk untuk Padel dan Cafe.</p>
       </div>
 
-      <DataTable<KategoriType>
+      <DataTable<KategoriTableItem>
         title="Daftar Kategori"
         columns={columns}
-        data={data?.items || []}
+        data={(data?.items as KategoriTableItem[]) || []}
         serverSide={true}
         searchTerm={searchTerm}
         onSearchChange={handleSearch}
@@ -1656,7 +1538,7 @@ const Login = () => {
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-black text-slate-900 tracking-tight">
-          Login ke Bumantara
+          Login ke Raku
         </h2>
         <p className="mt-2 text-center text-sm text-slate-500 font-medium">
           Sistem ERP Point of Sale & Inventory
@@ -1706,13 +1588,24 @@ export default Login;
 </file>
 
 <file path="src/pages/PageLoader.tsx">
+import { Package } from 'lucide-react';
+
 const PageLoader = () => {
   return (
-    <p>
-      loading
-    </p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
+      <div className="relative flex items-center justify-center">
+        <div className="absolute w-20 h-20 bg-indigo-500/20 rounded-full animate-ping"></div>
+        <div className="absolute w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm relative z-10">
+          <Package size={20} className="text-indigo-600 animate-pulse" />
+        </div>
+      </div>
+      <h3 className="mt-6 text-lg font-bold text-slate-800 tracking-tight">Memuat...</h3>
+      <p className="mt-1 text-sm text-slate-500 font-medium">Mohon tunggu sebentar</p>
+    </div>
   );
 };
+
 export default PageLoader;
 </file>
 
@@ -1780,6 +1673,8 @@ const VoucherPage = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vouchers'] });
+      queryClient.invalidateQueries({ queryKey: ['vouchers-active'] });
+      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
       handleCloseModal();
     },
     onError: (error) => alert(handleApiError(error).message),
@@ -2155,6 +2050,18 @@ export interface Voucher {
   persentase: number;
   isActive: boolean;
 }
+
+export interface AuditLog {
+  id: number;
+  entityName: string;
+  entityId: string;
+  action: "CREATE" | "UPDATE" | "DELETE";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  changes: Record<string, any>;
+  userId: number | null;
+  username: string;
+  createdAt: string;
+}
 </file>
 
 <file path="src/utils/errorHandler.ts">
@@ -2286,13 +2193,14 @@ const Navbar = ({ toggleMobileMenu }: NavbarProps) => {
 
   const getPageTitle = () => {
     switch (location.pathname) {
-      case '/': return 'Dashboard Analitik';
+      case '/': return 'Dashboard';
       case '/kategori': return 'Manajemen Kategori';
       case '/produk': return 'Manajemen Produk & Stok';
       case '/voucher': return 'Manajemen Voucher';
       case '/transaksi': return 'Pencatatan Transaksi';
       case '/history-transaksi': return 'Riwayat Transaksi';
-      default: return 'Bumantara';
+      case '/audit-logs': return 'Audit Log';
+      default: return 'Raku';
     }
   };
 
@@ -2328,6 +2236,310 @@ const Navbar = ({ toggleMobileMenu }: NavbarProps) => {
 };
 
 export default Navbar;
+</file>
+
+<file path="src/components/shared/DataTable.tsx">
+// src/components/shared/DataTable.tsx
+import React, { useState, useMemo, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
+
+export interface Column<T> {
+  header: string;
+  accessor: keyof T | string;
+  render?: (value: unknown, row: T) => React.ReactNode;
+}
+
+interface DataTableProps<T> {
+  title: string;
+  columns: Column<T>[];
+  data: T[];
+  onAdd?: () => void;
+  onEdit?: (item: T) => void;
+  onDelete?: (item: T) => void;
+  expandedRowRender?: (row: T) => React.ReactNode;
+  serverSide?: boolean;
+  searchTerm?: string;
+  onSearchChange?: (val: string) => void;
+  page?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
+  hasNextPage?: boolean;
+  hasPrevPage?: boolean;
+  onNextPage?: () => void;
+  onPrevPage?: () => void;
+  isLoading?: boolean; // <-- Tambahan props isLoading
+}
+
+const DataTable = <T extends Record<string, unknown>>({
+  title, columns, data, onAdd, onEdit, onDelete, expandedRowRender,
+  serverSide = false, searchTerm = '', onSearchChange,
+  page = 1, totalPages = 1, onPageChange,
+  hasNextPage, hasPrevPage, onNextPage, onPrevPage,
+  isLoading = false // <-- Default false
+}: DataTableProps<T>) => {
+
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    if (serverSide && onSearchChange) {
+      const timeoutId = setTimeout(() => {
+        if (localSearchTerm !== searchTerm) {
+          onSearchChange(localSearchTerm);
+        }
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [localSearchTerm, serverSide, onSearchChange, searchTerm]);
+
+  const toggleRow = (rowIndex: number) => {
+    setExpandedRows((prev) => ({ ...prev, [rowIndex]: !prev[rowIndex] }));
+  };
+
+  const filteredData = useMemo(() => {
+    if (serverSide) return data;
+    if (!localSearchTerm) return data;
+
+    const lowercasedTerm = localSearchTerm.toLowerCase();
+    return data.filter((row) => {
+      return columns.some((col) => {
+        const value = row[col.accessor as keyof T];
+        if (value == null) return false;
+        return String(value).toLowerCase().includes(lowercasedTerm);
+      });
+    });
+  }, [data, localSearchTerm, columns, serverSide]);
+
+  const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (onEdit || onDelete ? 1 : 0);
+
+  const getPageNumbers = () => {
+    const delta = 1;
+    const range: Array<number | string> = [];
+    for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
+      range.push(i);
+    }
+    if (page - delta > 2) range.unshift("...");
+    if (page + delta < totalPages - 1) range.push("...");
+    range.unshift(1);
+    if (totalPages > 1) range.push(totalPages);
+    return range;
+  };
+
+  return (
+    <div className="bg-white rounded-[20px] shadow-sm border border-slate-200/80 overflow-hidden flex flex-col transition-all duration-300">
+
+      {/* Header Section */}
+      <div className="p-5 md:px-6 md:py-5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-slate-100">
+        <div className="w-full lg:w-auto">
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-lg font-bold text-slate-800 tracking-tight">{title}</h2>
+            {!serverSide && !isLoading && (
+              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-slate-200/60 shrink-0">
+                {filteredData.length} Data
+              </span>
+            )}
+          </div>
+          <p className="text-[13px] text-slate-500 font-medium">Kelola dan pantau informasi operasional secara real-time.</p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+          <div className="relative w-full sm:w-64 group">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+            <input
+              type="text"
+              placeholder="Cari data..."
+              value={localSearchTerm}
+              onChange={(e) => setLocalSearchTerm(e.target.value)}
+              disabled={isLoading}
+              className="w-full pl-11 pr-4 py-3 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400 shadow-sm/50 disabled:opacity-60 disabled:cursor-not-allowed"
+            />
+          </div>
+
+          {onAdd && (
+            <button
+              onClick={onAdd}
+              disabled={isLoading}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-3 sm:py-2.5 rounded-xl hover:bg-indigo-700 hover:shadow-lg transition-all duration-300 font-bold text-[13px] active:scale-95 cursor-pointer shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Plus size={18} strokeWidth={2.5} />
+              Tambah Data
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Table Section */}
+      <div className="overflow-x-auto custom-scrollbar relative">
+        <table className="w-full text-sm text-left border-collapse min-w-[600px]">
+          <thead>
+            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200">
+              {expandedRowRender && <th className="px-4 py-4 w-10 text-center"></th>}
+              {columns.map((col, index) => (
+                <th key={index} className="px-6 py-4 whitespace-nowrap">
+                  {col.header}
+                </th>
+              ))}
+              {(onEdit || onDelete) && (
+                <th className="px-6 py-4 text-center whitespace-nowrap w-24 sticky right-0 bg-slate-50 border-l border-slate-200/60 z-10 shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.03)]">Aksi</th>
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {isLoading ? (
+              // SKELETON LOADING UI
+              [...Array(5)].map((_, i) => (
+                <tr key={`skeleton-${i}`} className="animate-pulse bg-white">
+                  {expandedRowRender && (
+                    <td className="px-4 py-4 w-10">
+                      <div className="w-4 h-4 bg-slate-200 rounded mx-auto"></div>
+                    </td>
+                  )}
+                  {columns.map((_, colIndex) => (
+                    <td key={`skeleton-col-${colIndex}`} className="px-6 py-5">
+                      <div className="h-4 bg-slate-200 rounded-md w-3/4"></div>
+                    </td>
+                  ))}
+                  {(onEdit || onDelete) && (
+                    <td className="px-6 py-4 sticky right-0 border-l border-slate-100 bg-white">
+                      <div className="flex justify-center gap-2">
+                        <div className="w-8 h-8 bg-slate-200 rounded-lg"></div>
+                        <div className="w-8 h-8 bg-slate-200 rounded-lg"></div>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))
+            ) : filteredData.length > 0 ? (
+              filteredData.map((row, rowIndex) => {
+                const isExpanded = !!expandedRows[rowIndex];
+                return (
+                  <React.Fragment key={rowIndex}>
+                    <tr
+                      onClick={() => {
+                        if (expandedRowRender) toggleRow(rowIndex);
+                      }}
+                      className={`transition-colors duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50' : 'hover:bg-slate-50/50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
+                    >
+                      {expandedRowRender && (
+                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-indigo-600 transition-colors">
+                          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                        </td>
+                      )}
+
+                      {columns.map((col, colIndex) => (
+                        <td key={colIndex} className="px-6 py-4 text-slate-700 whitespace-nowrap font-medium">
+                          {col.render ? col.render(row[col.accessor as keyof T], row) : String(row[col.accessor as keyof T] ?? '')}
+                        </td>
+                      ))}
+
+                      {/* Kolom Aksi yang Sticky */}
+                      {(onEdit || onDelete) && (
+                        <td
+                          className={`px-6 py-4 sticky right-0 border-l border-slate-100 z-10 transition-colors duration-200 ${isExpanded ? 'bg-indigo-50/30' : 'bg-white group-hover:bg-slate-50'} shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.02)]`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
+                            {onEdit && (
+                              <button onClick={() => onEdit(row)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-100 rounded-lg transition-all cursor-pointer">
+                                <Edit2 size={16} />
+                              </button>
+                            )}
+                            {onDelete && (
+                              <button onClick={() => onDelete(row)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all cursor-pointer">
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+
+                    {/* Expanded Row */}
+                    {isExpanded && expandedRowRender && (
+                      <tr className="bg-slate-50/50">
+                        <td colSpan={totalCols} className="px-0 sm:px-6 py-0 border-b border-slate-100">
+                          <div className="animate-in fade-in slide-in-from-top-2 duration-300 overflow-x-auto w-full">
+                            {expandedRowRender(row)}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={totalCols} className="px-6 py-20 text-center bg-white">
+                  <div className="flex flex-col items-center max-w-sm mx-auto">
+                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
+                      <FileX2 size={28} className="text-slate-400" />
+                    </div>
+                    <h3 className="text-slate-800 font-bold mb-1">Data tidak ditemukan</h3>
+                    <p className="text-slate-500 text-[13px] font-medium leading-relaxed">
+                      Coba sesuaikan filter atau kata kunci pencarian Anda.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination Section */}
+      {serverSide && !isLoading && (totalPages > 1 || hasNextPage !== undefined) && (
+        <div className="p-4 md:p-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
+          <span className="text-[13px] font-medium text-slate-500 text-center sm:text-left">
+            {hasNextPage !== undefined ? (
+              "Navigasi Data Halaman"
+            ) : (
+              <>Halaman <strong className="text-slate-900">{page}</strong> dari <strong className="text-slate-900">{totalPages}</strong></>
+            )}
+          </span>
+
+          <div className="flex items-center justify-center gap-1.5 w-full sm:w-auto">
+            <button
+              onClick={() => onPrevPage ? onPrevPage() : onPageChange?.(page - 1)}
+              disabled={onPrevPage ? !hasPrevPage : page === 1}
+              className="px-3 md:px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-200 flex items-center gap-1.5 cursor-pointer"
+            >
+              <ChevronLeft size={18} />
+              {hasNextPage !== undefined && <span className="text-sm font-bold hidden sm:block">Prev</span>}
+            </button>
+
+            {hasNextPage === undefined && getPageNumbers().map((num, idx) => (
+              num === "..." ? (
+                <span key={idx} className="px-2 text-slate-400 font-bold tracking-widest">...</span>
+              ) : (
+                <button
+                  key={idx}
+                  onClick={() => onPageChange?.(num as number)}
+                  className={`min-w-[44px] h-[44px] flex items-center justify-center rounded-xl text-[13px] font-bold transition-all cursor-pointer border ${page === num
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                >
+                  {num}
+                </button>
+              )
+            ))}
+
+            <button
+              onClick={() => onNextPage ? onNextPage() : onPageChange?.(page + 1)}
+              disabled={onNextPage ? !hasNextPage : page === totalPages}
+              className="px-3 md:px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-200 flex items-center gap-1.5 cursor-pointer"
+            >
+              {hasNextPage !== undefined && <span className="text-sm font-bold hidden sm:block">Next</span>}
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default DataTable;
 </file>
 
 <file path="src/components/shared/Input.tsx">
@@ -2515,7 +2727,8 @@ export default Select;
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Tags, Package, ArrowRightLeft,
-  LogOut, Ticket, ChevronLeft, ChevronRight, X
+  LogOut, Ticket, ChevronLeft, ChevronRight, X,
+  ShieldCheck
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -2543,6 +2756,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isMobileOpen, setIsMobileOpen }: S
     { title: 'Produk & Stok', path: '/produk', icon: Package },
     { title: 'Transaksi', path: '/transaksi', icon: ArrowRightLeft },
     { title: 'History', path: '/history-transaksi', icon: ArrowRightLeft },
+    { title: 'Audit Log', path: '/audit-logs', icon: ShieldCheck },
   ];
 
   return (
@@ -2565,7 +2779,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isMobileOpen, setIsMobileOpen }: S
         {/* Header Logo & Toggles */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
           <h1 className={`text-white font-bold tracking-wider transition-all duration-300 overflow-hidden whitespace-nowrap ${isExpanded ? 'opacity-100 w-auto ml-2' : 'opacity-0 w-0 m-0'}`}>
-            BUMANTARA
+            Raku
           </h1>
 
           {/* Close button for Mobile */}
@@ -2739,6 +2953,9 @@ const Produk = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['products-pos'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
       handleCloseModal();
     },
     onError: (error) => alert(handleApiError(error).message)
@@ -2759,7 +2976,12 @@ const Produk = () => {
     mutationFn: async (id: number) => {
       await api.delete(`/products/${id}`);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['products-pos'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
+    },
     onError: (error) => alert(handleApiError(error).message)
   });
 
@@ -3097,6 +3319,10 @@ const Transaksi = () => {
       setFotoBukti(null);
       setWaktuTransaksi('');
       queryClient.invalidateQueries({ queryKey: ['products-pos'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
     },
     onError: (error) => alert(handleApiError(error).message),
   });

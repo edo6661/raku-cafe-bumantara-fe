@@ -88,6 +88,10 @@ const Transaksi = () => {
       setFotoBukti(null);
       setWaktuTransaksi('');
       queryClient.invalidateQueries({ queryKey: ['products-pos'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
     },
     onError: (error) => alert(handleApiError(error).message),
   });

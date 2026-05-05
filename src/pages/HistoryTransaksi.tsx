@@ -212,6 +212,7 @@ const HistoryTransaksi = () => {
         columns={columns}
         data={(data?.items as HistoryTableItem[]) || []}
         serverSide={true}
+        isLoading={isLoading}
         searchTerm={searchTerm}
         onSearchChange={handleSearch}
         expandedRowRender={expandedRowRender}

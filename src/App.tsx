@@ -9,7 +9,8 @@ const Kategori = lazy(() => import('./pages/Kategori'));
 const Produk = lazy(() => import('./pages/Produk'));
 const Transaksi = lazy(() => import('./pages/Transaksi'));
 const HistoryTransaksi = lazy(() => import('./pages/HistoryTransaksi'));
-const Voucher = lazy(() => import('./pages/Voucher')); // <-- Tambahkan ini
+const AuditLog = lazy(() => import('./pages/AuditLog'));
+const Voucher = lazy(() => import('./pages/Voucher'));
 const Login = lazy(() => import('./pages/Login'));
 
 const App = () => {
@@ -27,6 +28,7 @@ const App = () => {
               <Route path="/voucher" element={<Voucher />} />
               <Route path="/transaksi" element={<Transaksi />} />
               <Route path="/history-transaksi" element={<HistoryTransaksi />} />
+              <Route path="/audit-logs" element={<AuditLog />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

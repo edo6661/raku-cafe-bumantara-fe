@@ -82,6 +82,9 @@ const Produk = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['products-pos'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
       handleCloseModal();
     },
     onError: (error) => alert(handleApiError(error).message)
@@ -102,7 +105,12 @@ const Produk = () => {
     mutationFn: async (id: number) => {
       await api.delete(`/products/${id}`);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['products-pos'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
+    },
     onError: (error) => alert(handleApiError(error).message)
   });
 
@@ -197,6 +205,7 @@ const Produk = () => {
     if (editingId) {
       updateMutation.mutate({ id: editingId, payload: formData });
     } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       createMutation.mutate(formData as any);
     }
   };
@@ -246,6 +255,7 @@ const Produk = () => {
         title="Daftar Master Produk"
         columns={columns}
         data={(produkData?.items as ProdukTableItem[]) || []}
+        isLoading={isLoading}
         serverSide={true}
         searchTerm={searchTerm}
         onSearchChange={handleSearch}

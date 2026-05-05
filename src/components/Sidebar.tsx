@@ -2,7 +2,8 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Tags, Package, ArrowRightLeft,
-  LogOut, Ticket, ChevronLeft, ChevronRight, X
+  LogOut, Ticket, ChevronLeft, ChevronRight, X,
+  ShieldCheck
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -30,6 +31,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isMobileOpen, setIsMobileOpen }: S
     { title: 'Produk & Stok', path: '/produk', icon: Package },
     { title: 'Transaksi', path: '/transaksi', icon: ArrowRightLeft },
     { title: 'History', path: '/history-transaksi', icon: ArrowRightLeft },
+    { title: 'Audit Log', path: '/audit-logs', icon: ShieldCheck },
   ];
 
   return (
@@ -52,7 +54,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isMobileOpen, setIsMobileOpen }: S
         {/* Header Logo & Toggles */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
           <h1 className={`text-white font-bold tracking-wider transition-all duration-300 overflow-hidden whitespace-nowrap ${isExpanded ? 'opacity-100 w-auto ml-2' : 'opacity-0 w-0 m-0'}`}>
-            BUMANTARA
+            Raku
           </h1>
 
           {/* Close button for Mobile */}

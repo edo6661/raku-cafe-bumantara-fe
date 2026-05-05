@@ -1,3 +1,4 @@
+// src/components/shared/DataTable.tsx
 import React, { useState, useMemo, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
 
@@ -25,13 +26,15 @@ interface DataTableProps<T> {
   hasPrevPage?: boolean;
   onNextPage?: () => void;
   onPrevPage?: () => void;
+  isLoading?: boolean; // <-- Tambahan props isLoading
 }
 
 const DataTable = <T extends Record<string, unknown>>({
   title, columns, data, onAdd, onEdit, onDelete, expandedRowRender,
   serverSide = false, searchTerm = '', onSearchChange,
   page = 1, totalPages = 1, onPageChange,
-  hasNextPage, hasPrevPage, onNextPage, onPrevPage
+  hasNextPage, hasPrevPage, onNextPage, onPrevPage,
+  isLoading = false // <-- Default false
 }: DataTableProps<T>) => {
 
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
@@ -89,7 +92,7 @@ const DataTable = <T extends Record<string, unknown>>({
         <div className="w-full lg:w-auto">
           <div className="flex items-center gap-3 mb-1">
             <h2 className="text-lg font-bold text-slate-800 tracking-tight">{title}</h2>
-            {!serverSide && (
+            {!serverSide && !isLoading && (
               <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-slate-200/60 shrink-0">
                 {filteredData.length} Data
               </span>
@@ -106,14 +109,16 @@ const DataTable = <T extends Record<string, unknown>>({
               placeholder="Cari data..."
               value={localSearchTerm}
               onChange={(e) => setLocalSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400 shadow-sm/50"
+              disabled={isLoading}
+              className="w-full pl-11 pr-4 py-3 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400 shadow-sm/50 disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 
           {onAdd && (
             <button
               onClick={onAdd}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-3 sm:py-2.5 rounded-xl hover:bg-indigo-700 hover:shadow-lg transition-all duration-300 font-bold text-[13px] active:scale-95 cursor-pointer shrink-0"
+              disabled={isLoading}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-3 sm:py-2.5 rounded-xl hover:bg-indigo-700 hover:shadow-lg transition-all duration-300 font-bold text-[13px] active:scale-95 cursor-pointer shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Plus size={18} strokeWidth={2.5} />
               Tambah Data
@@ -139,7 +144,31 @@ const DataTable = <T extends Record<string, unknown>>({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {filteredData.length > 0 ? (
+            {isLoading ? (
+              // SKELETON LOADING UI
+              [...Array(5)].map((_, i) => (
+                <tr key={`skeleton-${i}`} className="animate-pulse bg-white">
+                  {expandedRowRender && (
+                    <td className="px-4 py-4 w-10">
+                      <div className="w-4 h-4 bg-slate-200 rounded mx-auto"></div>
+                    </td>
+                  )}
+                  {columns.map((_, colIndex) => (
+                    <td key={`skeleton-col-${colIndex}`} className="px-6 py-5">
+                      <div className="h-4 bg-slate-200 rounded-md w-3/4"></div>
+                    </td>
+                  ))}
+                  {(onEdit || onDelete) && (
+                    <td className="px-6 py-4 sticky right-0 border-l border-slate-100 bg-white">
+                      <div className="flex justify-center gap-2">
+                        <div className="w-8 h-8 bg-slate-200 rounded-lg"></div>
+                        <div className="w-8 h-8 bg-slate-200 rounded-lg"></div>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))
+            ) : filteredData.length > 0 ? (
               filteredData.map((row, rowIndex) => {
                 const isExpanded = !!expandedRows[rowIndex];
                 return (
@@ -217,7 +246,7 @@ const DataTable = <T extends Record<string, unknown>>({
       </div>
 
       {/* Pagination Section */}
-      {serverSide && (totalPages > 1 || hasNextPage !== undefined) && (
+      {serverSide && !isLoading && (totalPages > 1 || hasNextPage !== undefined) && (
         <div className="p-4 md:p-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
           <span className="text-[13px] font-medium text-slate-500 text-center sm:text-left">
             {hasNextPage !== undefined ? (

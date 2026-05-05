@@ -23,6 +23,7 @@ interface KategoriFormPayload {
   nama: string;
   businessUnit: BusinessUnit | '';
 }
+type KategoriTableItem = KategoriType & Record<string, unknown>;
 
 const initialFormState: KategoriFormPayload = {
   nama: '',
@@ -64,6 +65,8 @@ const Kategori = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['categories-all'] });
+      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
       handleCloseModal();
     },
     onError: (error) => {
@@ -202,10 +205,11 @@ const Kategori = () => {
         <p className="text-sm text-slate-500">Kelola kategori produk untuk Padel dan Cafe.</p>
       </div>
 
-      <DataTable<KategoriType>
+      <DataTable<KategoriTableItem>
         title="Daftar Kategori"
         columns={columns}
-        data={data?.items || []}
+        data={(data?.items as KategoriTableItem[]) || []}
+        isLoading={isLoading}
         serverSide={true}
         searchTerm={searchTerm}
         onSearchChange={handleSearch}

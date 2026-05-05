@@ -104,3 +104,15 @@ export interface Voucher {
   persentase: number;
   isActive: boolean;
 }
+
+export interface AuditLog {
+  id: number;
+  entityName: string;
+  entityId: string;
+  action: "CREATE" | "UPDATE" | "DELETE";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  changes: Record<string, any>;
+  userId: number | null;
+  username: string;
+  createdAt: string;
+}
