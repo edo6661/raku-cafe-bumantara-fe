@@ -1,4 +1,85 @@
-kode frontend:
+This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: src/**/*, package.json, vite.config.ts, tsconfig.json, prisma/schema.prisma, prisma/seeds/, prisma/seed.ts
+- Files matching these patterns are excluded: **/*.test.ts, dist/, **/*.js
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+package.json
+src/App.tsx
+src/components/layouts/RootLayout.tsx
+src/components/Navbar.tsx
+src/components/shared/CurrencyInput.tsx
+src/components/shared/DataTable.tsx
+src/components/shared/FileInput.tsx
+src/components/shared/Input.tsx
+src/components/shared/Modal.tsx
+src/components/shared/Select.tsx
+src/components/Sidebar.tsx
+src/hooks/useCrud.ts
+src/hooks/useForm.ts
+src/index.css
+src/lib/axios.ts
+src/main.tsx
+src/pages/Dashboard.tsx
+src/pages/HistoryTransaksi.tsx
+src/pages/Home.tsx
+src/pages/Kategori.tsx
+src/pages/Login.tsx
+src/pages/PageLoader.tsx
+src/pages/Produk.tsx
+src/pages/Transaksi.tsx
+src/pages/Voucher.tsx
+src/providers/QueryProvider.tsx
+src/types/api_response.ts
+src/types/common.ts
+src/types/domain.ts
+src/utils/errorHandler.ts
+src/utils/formatters.ts
+src/utils/storage.ts
+tsconfig.json
+vite.config.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
 
 <file path="package.json">
 {
@@ -87,77 +168,6 @@ const App = () => {
 };
 
 export default App;
-</file>
-
-<file path="src/components/layouts/RootLayout.tsx">
-import { Outlet, Navigate } from 'react-router-dom';
-import Sidebar from '../Sidebar';
-import Navbar from '../Navbar';
-
-const RootLayout = () => {
-
-  const token = localStorage.getItem('token');
-
-
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 flex flex-col w-full">
-        <Navbar />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-6 md:p-8">
-          <Outlet />
-        </main>
-      </div>
-    </div>
-  );
-};
-
-export default RootLayout;
-</file>
-
-<file path="src/components/Navbar.tsx">
-import { useLocation } from 'react-router-dom';
-
-const Navbar = () => {
-  const location = useLocation();
-
-  const getPageTitle = () => {
-    switch (location.pathname) {
-      case '/': return 'Dashboard Analitik';
-      case '/kategori': return 'Manajemen Kategori';
-      case '/produk': return 'Manajemen Produk & Stok';
-      case '/voucher': return 'Manajemen Voucher';
-      case '/transaksi': return 'Pencatatan Transaksi';
-      case '/history-transaksi': return 'Riwayat Transaksi';
-      default: return 'Bumantara';
-    }
-  };
-
-  return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0 z-10">
-      <h2 className="text-lg font-bold text-slate-800 tracking-tight">
-        {getPageTitle()}
-      </h2>
-
-      <div className="flex items-center gap-4">
-        <span className="text-sm font-medium text-slate-500">
-          {new Date().toLocaleDateString('id-ID', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })}
-        </span>
-      </div>
-    </header>
-  );
-};
-
-export default Navbar;
 </file>
 
 <file path="src/components/shared/CurrencyInput.tsx">
@@ -295,12 +305,14 @@ const DataTable = <T extends Record<string, unknown>>({
 
   return (
     <div className="bg-white rounded-[20px] shadow-sm border border-slate-200/80 overflow-hidden flex flex-col transition-all duration-300">
-      <div className="p-6 md:px-8 md:py-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 border-b border-slate-100">
-        <div>
+
+      {/* Header Section */}
+      <div className="p-5 md:px-6 md:py-5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-slate-100">
+        <div className="w-full lg:w-auto">
           <div className="flex items-center gap-3 mb-1">
             <h2 className="text-lg font-bold text-slate-800 tracking-tight">{title}</h2>
             {!serverSide && (
-              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-slate-200/60">
+              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-slate-200/60 shrink-0">
                 {filteredData.length} Data
               </span>
             )}
@@ -310,32 +322,33 @@ const DataTable = <T extends Record<string, unknown>>({
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
           <div className="relative w-full sm:w-64 group">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
             <input
               type="text"
               placeholder="Cari data..."
               value={localSearchTerm}
               onChange={(e) => setLocalSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400"
+              className="w-full pl-11 pr-4 py-3 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400 shadow-sm/50"
             />
           </div>
 
           {onAdd && (
             <button
               onClick={onAdd}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl hover:bg-indigo-700 hover:shadow-lg transition-all duration-300 font-bold text-[13px] active:scale-95 cursor-pointer"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-3 sm:py-2.5 rounded-xl hover:bg-indigo-700 hover:shadow-lg transition-all duration-300 font-bold text-[13px] active:scale-95 cursor-pointer shrink-0"
             >
-              <Plus size={16} strokeWidth={2.5} />
+              <Plus size={18} strokeWidth={2.5} />
               Tambah Data
             </button>
           )}
         </div>
       </div>
 
-      <div className="overflow-x-auto custom-scrollbar">
-        <table className="w-full text-sm text-left border-collapse">
+      {/* Table Section */}
+      <div className="overflow-x-auto custom-scrollbar relative">
+        <table className="w-full text-sm text-left border-collapse min-w-[600px]">
           <thead>
-            <tr className="bg-slate-50/50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200/60">
+            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200">
               {expandedRowRender && <th className="px-4 py-4 w-10 text-center"></th>}
               {columns.map((col, index) => (
                 <th key={index} className="px-6 py-4 whitespace-nowrap">
@@ -343,7 +356,7 @@ const DataTable = <T extends Record<string, unknown>>({
                 </th>
               ))}
               {(onEdit || onDelete) && (
-                <th className="px-6 py-4 text-center whitespace-nowrap w-24">Aksi</th>
+                <th className="px-6 py-4 text-center whitespace-nowrap w-24 sticky right-0 bg-slate-50 border-l border-slate-200/60 z-10 shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.03)]">Aksi</th>
               )}
             </tr>
           </thead>
@@ -357,28 +370,34 @@ const DataTable = <T extends Record<string, unknown>>({
                       onClick={() => {
                         if (expandedRowRender) toggleRow(rowIndex);
                       }}
-                      className={`transition-colors duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50/50'} ${isExpanded ? 'bg-slate-50/80' : ''}`}
+                      className={`transition-colors duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50' : 'hover:bg-slate-50/50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
                     >
                       {expandedRowRender && (
-                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">
+                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-indigo-600 transition-colors">
                           {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                         </td>
                       )}
+
                       {columns.map((col, colIndex) => (
                         <td key={colIndex} className="px-6 py-4 text-slate-700 whitespace-nowrap font-medium">
                           {col.render ? col.render(row[col.accessor as keyof T], row) : String(row[col.accessor as keyof T] ?? '')}
                         </td>
                       ))}
+
+                      {/* Kolom Aksi yang Sticky */}
                       {(onEdit || onDelete) && (
-                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <td
+                          className={`px-6 py-4 sticky right-0 border-l border-slate-100 z-10 transition-colors duration-200 ${isExpanded ? 'bg-indigo-50/30' : 'bg-white group-hover:bg-slate-50'} shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.02)]`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
                             {onEdit && (
-                              <button onClick={() => onEdit(row)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all cursor-pointer">
+                              <button onClick={() => onEdit(row)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-100 rounded-lg transition-all cursor-pointer">
                                 <Edit2 size={16} />
                               </button>
                             )}
                             {onDelete && (
-                              <button onClick={() => onDelete(row)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer">
+                              <button onClick={() => onDelete(row)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all cursor-pointer">
                                 <Trash2 size={16} />
                               </button>
                             )}
@@ -386,10 +405,12 @@ const DataTable = <T extends Record<string, unknown>>({
                         </td>
                       )}
                     </tr>
+
+                    {/* Expanded Row */}
                     {isExpanded && expandedRowRender && (
-                      <tr className="bg-slate-50/30">
-                        <td colSpan={totalCols} className="px-6 py-6 border-b border-slate-100">
-                          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                      <tr className="bg-slate-50/50">
+                        <td colSpan={totalCols} className="px-0 sm:px-6 py-0 border-b border-slate-100">
+                          <div className="animate-in fade-in slide-in-from-top-2 duration-300 overflow-x-auto w-full">
                             {expandedRowRender(row)}
                           </div>
                         </td>
@@ -400,14 +421,14 @@ const DataTable = <T extends Record<string, unknown>>({
               })
             ) : (
               <tr>
-                <td colSpan={totalCols} className="px-6 py-24 text-center">
+                <td colSpan={totalCols} className="px-6 py-20 text-center bg-white">
                   <div className="flex flex-col items-center max-w-sm mx-auto">
                     <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
                       <FileX2 size={28} className="text-slate-400" />
                     </div>
                     <h3 className="text-slate-800 font-bold mb-1">Data tidak ditemukan</h3>
                     <p className="text-slate-500 text-[13px] font-medium leading-relaxed">
-                      Coba sesuaikan filter atau kata kunci pencarian Anda untuk menemukan data.
+                      Coba sesuaikan filter atau kata kunci pencarian Anda.
                     </p>
                   </div>
                 </td>
@@ -417,9 +438,10 @@ const DataTable = <T extends Record<string, unknown>>({
         </table>
       </div>
 
+      {/* Pagination Section */}
       {serverSide && (totalPages > 1 || hasNextPage !== undefined) && (
-        <div className="p-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
-          <span className="text-[13px] font-medium text-slate-500">
+        <div className="p-4 md:p-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
+          <span className="text-[13px] font-medium text-slate-500 text-center sm:text-left">
             {hasNextPage !== undefined ? (
               "Navigasi Data Halaman"
             ) : (
@@ -427,14 +449,14 @@ const DataTable = <T extends Record<string, unknown>>({
             )}
           </span>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-center gap-1.5 w-full sm:w-auto">
             <button
               onClick={() => onPrevPage ? onPrevPage() : onPageChange?.(page - 1)}
               disabled={onPrevPage ? !hasPrevPage : page === 1}
-              className="px-3 py-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-200 flex items-center gap-1.5"
+              className="px-3 md:px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-200 flex items-center gap-1.5 cursor-pointer"
             >
               <ChevronLeft size={18} />
-              {hasNextPage !== undefined && <span className="text-sm font-semibold">Prev</span>}
+              {hasNextPage !== undefined && <span className="text-sm font-bold hidden sm:block">Prev</span>}
             </button>
 
             {hasNextPage === undefined && getPageNumbers().map((num, idx) => (
@@ -444,9 +466,9 @@ const DataTable = <T extends Record<string, unknown>>({
                 <button
                   key={idx}
                   onClick={() => onPageChange?.(num as number)}
-                  className={`min-w-[36px] h-9 flex items-center justify-center rounded-lg text-[13px] font-bold transition-all cursor-pointer border ${page === num
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-200 hover:text-slate-900'
+                  className={`min-w-[44px] h-[44px] flex items-center justify-center rounded-xl text-[13px] font-bold transition-all cursor-pointer border ${page === num
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                 >
                   {num}
@@ -457,9 +479,9 @@ const DataTable = <T extends Record<string, unknown>>({
             <button
               onClick={() => onNextPage ? onNextPage() : onPageChange?.(page + 1)}
               disabled={onNextPage ? !hasNextPage : page === totalPages}
-              className="px-3 py-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-200 flex items-center gap-1.5"
+              className="px-3 md:px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-200 flex items-center gap-1.5 cursor-pointer"
             >
-              {hasNextPage !== undefined && <span className="text-sm font-semibold">Next</span>}
+              {hasNextPage !== undefined && <span className="text-sm font-bold hidden sm:block">Next</span>}
               <ChevronRight size={18} />
             </button>
           </div>
@@ -519,240 +541,6 @@ const FileInput = ({ label, error, ...props }: FileInputProps) => {
 };
 
 export default FileInput;
-</file>
-
-<file path="src/components/shared/Input.tsx">
-import type { InputHTMLAttributes } from 'react';
-import { twMerge } from 'tailwind-merge';
-
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label: string;
-  error?: string;
-}
-
-const Input = ({ label, error, className, ...props }: InputProps) => {
-  return (
-    <div className="flex flex-col gap-1.5 mb-4 group w-full">
-      <label className="text-[12px] font-bold text-zinc-500 uppercase tracking-widest transition-colors group-focus-within:text-zinc-900 ml-1">
-        {label}
-      </label>
-      <input
-        className={twMerge(
-          "w-full px-4 py-3.5 text-sm rounded-xl border transition-all duration-300 outline-none placeholder:text-zinc-400 disabled:bg-zinc-50 disabled:text-zinc-400 disabled:cursor-not-allowed disabled:border-zinc-200",
-          error
-            ? "border-red-300 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-zinc-900"
-            : "border-zinc-200 hover:border-zinc-300 focus:bg-white focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 text-zinc-900 bg-zinc-50/50",
-          className
-        )}
-        {...props}
-      />
-      {error && (
-        <span className="text-[11px] font-semibold text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
-          {error}
-        </span>
-      )}
-    </div>
-  );
-};
-
-export default Input;
-</file>
-
-<file path="src/components/shared/Modal.tsx">
-import { type ReactNode, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: ReactNode;
-}
-
-const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
-
-  return createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-zinc-950/40 backdrop-blur-sm transition-all"
-            onClick={onClose}
-          />
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 15 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 15 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative bg-white rounded-[24px] w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl ring-1 ring-zinc-900/5 overflow-hidden"
-          >
-            <div className="flex justify-between items-center px-8 py-6 border-b border-zinc-100 bg-white shrink-0">
-              <div>
-                <h3 className="text-xl font-bold text-zinc-900 tracking-tight">{title}</h3>
-                <p className="text-[12px] text-zinc-400 font-medium mt-1">Detail informasi tersimpan di sistem</p>
-              </div>
-              <button
-                onClick={onClose}
-                className="p-2.5 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl transition-all cursor-pointer bg-zinc-50"
-              >
-                <X size={20} strokeWidth={2} />
-              </button>
-            </div>
-
-            <div className="p-8 overflow-y-auto custom-scrollbar bg-zinc-50/30">
-              {children}
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>,
-    document.body
-  );
-};
-
-export default Modal;
-</file>
-
-<file path="src/components/shared/Select.tsx">
-import type { SelectHTMLAttributes } from 'react';
-
-interface Option {
-  value: string | number;
-  label: string;
-}
-
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label: string;
-  options: Option[];
-  error?: string;
-}
-
-const Select = ({ label, options, error, ...props }: SelectProps) => {
-  return (
-    <div className="flex flex-col gap-1.5 mb-4 group w-full">
-      <label className="text-[12px] font-bold text-zinc-500 uppercase tracking-widest transition-colors group-focus-within:text-zinc-900 ml-1">
-        {label}
-      </label>
-      <div className="relative">
-        <select
-          className={`w-full px-4 py-3.5 text-sm rounded-xl border transition-all duration-300 outline-none cursor-pointer appearance-none disabled:bg-zinc-50 disabled:text-zinc-400 disabled:cursor-not-allowed disabled:border-zinc-200
-            ${error
-              ? 'border-red-300 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-zinc-900'
-              : 'border-zinc-200 hover:border-zinc-300 focus:bg-white focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 text-zinc-900 bg-zinc-50/50'
-            }`}
-          {...props}
-        >
-          <option value="" disabled>Pilih {label}...</option>
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value} className="py-2">
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        {/* Custom Arrow Icon */}
-        <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-zinc-400 group-focus-within:text-zinc-900 transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </div>
-      {error && (
-        <span className="text-[11px] font-semibold text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
-          {error}
-        </span>
-      )}
-    </div>
-  );
-};
-
-export default Select;
-</file>
-
-<file path="src/components/Sidebar.tsx">
-import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Tags, Package, ArrowRightLeft, LogOut, Ticket } from 'lucide-react';
-const Sidebar = () => {
-  const navigate = useNavigate();
-  const userString = localStorage.getItem('user');
-  const user = userString ? JSON.parse(userString) : { username: 'Guest', role: 'UNKNOWN' };
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
-  };
-  const menuItems = [
-    { title: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { title: 'Kategori', path: '/kategori', icon: Tags },
-    { title: 'Voucher', path: '/voucher', icon: Ticket },
-    { title: 'Produk & Stok', path: '/produk', icon: Package },
-    { title: 'Transaksi', path: '/transaksi', icon: ArrowRightLeft },
-    { title: 'History', path: '/history-transaksi', icon: ArrowRightLeft },
-  ];
-  return (
-    <aside className="w-64 h-screen bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 transition-all duration-300">
-      <div className="h-16 flex items-center px-6 border-b border-slate-800">
-        <h1 className="text-white font-bold text-xl tracking-wider">BUMANTARA</h1>
-      </div>
-      <nav className="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto custom-scrollbar">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium text-[14px] ${isActive
-                  ? 'bg-indigo-600/10 text-indigo-400 font-bold'
-                  : 'hover:bg-slate-800 hover:text-white'
-                }`
-              }
-            >
-              <Icon size={20} strokeWidth={2} />
-              {item.title}
-            </NavLink>
-          );
-        })}
-      </nav>
-      <div className="p-4 border-t border-slate-800">
-        <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-slate-800/50">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-sm uppercase">
-              {user.username.charAt(0)}
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-white leading-none">{user.username}</span>
-              <span className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">{user.role}</span>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-400/10 transition-colors cursor-pointer"
-            title="Logout"
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
-      </div>
-    </aside>
-  );
-};
-export default Sidebar;
 </file>
 
 <file path="src/hooks/useCrud.ts">
@@ -2440,6 +2228,432 @@ export default defineConfig({
 });
 </file>
 
+<file path="src/components/layouts/RootLayout.tsx">
+// src/components/layouts/RootLayout.tsx
+import { useState } from 'react';
+import { Outlet, Navigate } from 'react-router-dom';
+import Sidebar from '../Sidebar';
+import Navbar from '../Navbar';
+
+const RootLayout = () => {
+  const token = localStorage.getItem('token');
+
+  // State untuk expand/shrink di Desktop
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+
+  // State untuk membuka/menutup menu di Mobile
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
+      <Sidebar
+        isExpanded={isSidebarExpanded}
+        setIsExpanded={setIsSidebarExpanded}
+        isMobileOpen={isMobileMenuOpen}
+        setIsMobileOpen={setIsMobileMenuOpen}
+      />
+
+      {/* Container utama, min-w-0 penting agar tabel/konten tidak overflow */}
+      <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
+        <Navbar
+          toggleMobileMenu={() => setIsMobileMenuOpen(true)}
+        />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-4 md:p-6 lg:p-8 custom-scrollbar">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default RootLayout;
+</file>
+
+<file path="src/components/Navbar.tsx">
+import { useLocation } from 'react-router-dom';
+import { Menu } from 'lucide-react';
+
+interface NavbarProps {
+  toggleMobileMenu: () => void;
+}
+
+const Navbar = ({ toggleMobileMenu }: NavbarProps) => {
+  const location = useLocation();
+
+  const getPageTitle = () => {
+    switch (location.pathname) {
+      case '/': return 'Dashboard Analitik';
+      case '/kategori': return 'Manajemen Kategori';
+      case '/produk': return 'Manajemen Produk & Stok';
+      case '/voucher': return 'Manajemen Voucher';
+      case '/transaksi': return 'Pencatatan Transaksi';
+      case '/history-transaksi': return 'Riwayat Transaksi';
+      default: return 'Bumantara';
+    }
+  };
+
+  return (
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 flex-shrink-0 z-10 sticky top-0">
+      <div className="flex items-center gap-3">
+        {/* Tombol Hamburger HANYA muncul di layar mobile/tablet (lg:hidden) */}
+        <button
+          onClick={toggleMobileMenu}
+          className="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer lg:hidden"
+        >
+          <Menu size={24} />
+        </button>
+
+        <h2 className="text-base md:text-lg font-bold text-slate-800 tracking-tight line-clamp-1">
+          {getPageTitle()}
+        </h2>
+      </div>
+
+      {/* Tanggal disembunyikan di layar HP agar Navbar tidak sesak */}
+      <div className="hidden sm:flex items-center gap-4">
+        <span className="text-xs md:text-sm font-medium text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+          {new Date().toLocaleDateString('id-ID', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })}
+        </span>
+      </div>
+    </header>
+  );
+};
+
+export default Navbar;
+</file>
+
+<file path="src/components/shared/Input.tsx">
+import type { InputHTMLAttributes } from 'react';
+import { twMerge } from 'tailwind-merge';
+
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  error?: string;
+}
+
+const Input = ({ label, error, className, ...props }: InputProps) => {
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest transition-colors group-focus-within:text-slate-900 ml-1">
+        {label}
+      </label>
+      <input
+        className={twMerge(
+          "w-full px-4 py-3 text-sm rounded-xl border transition-all duration-300 outline-none placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed disabled:border-slate-200 shadow-sm/50",
+          error
+            ? "border-red-300 bg-red-50/50 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900"
+            : "border-slate-200 hover:border-slate-300 focus:bg-white focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-500 text-slate-900 bg-white",
+          className
+        )}
+        {...props}
+      />
+      {error && (
+        <span className="text-[11px] font-bold text-red-500 mt-0.5 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export default Input;
+</file>
+
+<file path="src/components/shared/Modal.tsx">
+import { type ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | 'full';
+  description?: string;
+}
+
+const Modal = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  maxWidth = '2xl',
+  description = 'Detail informasi tersimpan di sistem'
+}: ModalProps) => {
+
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'unset';
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isOpen]);
+
+  const maxWidthClass = {
+    'sm': 'sm:max-w-sm',
+    'md': 'sm:max-w-md',
+    'lg': 'sm:max-w-lg',
+    'xl': 'sm:max-w-xl',
+    '2xl': 'sm:max-w-2xl',
+    '4xl': 'sm:max-w-4xl',
+    'full': 'sm:max-w-[95vw]',
+  }[maxWidth];
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        // items-end untuk mobile (bottom sheet), sm:items-center untuk desktop
+        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm transition-all"
+            onClick={onClose}
+          />
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 100 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 100 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className={`relative bg-white w-full ${maxWidthClass} max-h-[90vh] sm:max-h-[85vh] flex flex-col shadow-2xl ring-1 ring-slate-900/5 overflow-hidden rounded-t-[24px] sm:rounded-[24px]`}
+          >
+            <div className="flex justify-between items-start sm:items-center px-6 py-5 border-b border-slate-100 bg-white shrink-0">
+              <div>
+                <h3 className="text-lg md:text-xl font-bold text-slate-900 tracking-tight">{title}</h3>
+                {description && <p className="text-[12px] text-slate-500 font-medium mt-1">{description}</p>}
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all cursor-pointer bg-slate-50 shrink-0"
+              >
+                <X size={20} strokeWidth={2} />
+              </button>
+            </div>
+
+            <div className="p-5 md:p-6 overflow-y-auto custom-scrollbar bg-slate-50/30 flex-1">
+              {children}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+};
+
+export default Modal;
+</file>
+
+<file path="src/components/shared/Select.tsx">
+import type { SelectHTMLAttributes } from 'react';
+
+interface Option {
+  value: string | number;
+  label: string;
+}
+
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  label: string;
+  options: Option[];
+  error?: string;
+}
+
+const Select = ({ label, options, error, ...props }: SelectProps) => {
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest transition-colors group-focus-within:text-slate-900 ml-1">
+        {label}
+      </label>
+      <div className="relative">
+        <select
+          className={`w-full pl-4 pr-10 py-3 text-sm rounded-xl border transition-all duration-300 outline-none cursor-pointer appearance-none shadow-sm/50 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed disabled:border-slate-200
+            ${error
+              ? 'border-red-300 bg-red-50/50 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
+              : 'border-slate-200 hover:border-slate-300 focus:bg-white focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-500 text-slate-900 bg-white'
+            }`}
+          {...props}
+        >
+          <option value="" disabled>Pilih {label}...</option>
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value} className="py-2 text-slate-800">
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        {/* Custom Arrow Icon */}
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+      {error && (
+        <span className="text-[11px] font-bold text-red-500 mt-0.5 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export default Select;
+</file>
+
+<file path="src/components/Sidebar.tsx">
+// src/components/Sidebar.tsx
+import { NavLink, useNavigate } from 'react-router-dom';
+import {
+  LayoutDashboard, Tags, Package, ArrowRightLeft,
+  LogOut, Ticket, ChevronLeft, ChevronRight, X
+} from 'lucide-react';
+
+interface SidebarProps {
+  isExpanded: boolean;
+  setIsExpanded: (val: boolean) => void;
+  isMobileOpen: boolean;
+  setIsMobileOpen: (val: boolean) => void;
+}
+
+const Sidebar = ({ isExpanded, setIsExpanded, isMobileOpen, setIsMobileOpen }: SidebarProps) => {
+  const navigate = useNavigate();
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : { username: 'Guest', role: 'UNKNOWN' };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
+  const menuItems = [
+    { title: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { title: 'Kategori', path: '/kategori', icon: Tags },
+    { title: 'Voucher', path: '/voucher', icon: Ticket },
+    { title: 'Produk & Stok', path: '/produk', icon: Package },
+    { title: 'Transaksi', path: '/transaksi', icon: ArrowRightLeft },
+    { title: 'History', path: '/history-transaksi', icon: ArrowRightLeft },
+  ];
+
+  return (
+    <>
+      {/* Mobile Overlay Background */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Container */}
+      <aside
+        className={`fixed lg:static inset-y-0 left-0 z-50 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out shadow-2xl lg:shadow-none
+          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${isExpanded ? 'w-64' : 'w-20'}
+        `}
+      >
+        {/* Header Logo & Toggles */}
+        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
+          <h1 className={`text-white font-bold tracking-wider transition-all duration-300 overflow-hidden whitespace-nowrap ${isExpanded ? 'opacity-100 w-auto ml-2' : 'opacity-0 w-0 m-0'}`}>
+            BUMANTARA
+          </h1>
+
+          {/* Close button for Mobile */}
+          <button
+            className="lg:hidden p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg cursor-pointer"
+            onClick={() => setIsMobileOpen(false)}
+          >
+            <X size={20} />
+          </button>
+
+          {/* Expand/Shrink toggle for Desktop */}
+          <button
+            className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer shrink-0"
+            onClick={() => setIsExpanded(!isExpanded)}
+            title={isExpanded ? "Perkecil Sidebar" : "Perbesar Sidebar"}
+          >
+            {isExpanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+          </button>
+        </div>
+
+        {/* Navigation Menus */}
+        <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto custom-scrollbar">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                // Jika di mobile, tutup sidebar saat menu di klik
+                onClick={() => window.innerWidth < 1024 && setIsMobileOpen(false)}
+                title={!isExpanded ? item.title : undefined}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 py-3 rounded-xl transition-all duration-200 font-medium text-[14px] group relative ${isActive
+                    ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/20'
+                    : 'hover:bg-slate-800 hover:text-white text-slate-400'
+                  } ${!isExpanded ? 'px-0 justify-center' : 'px-4'}`
+                }
+              >
+                <Icon size={20} strokeWidth={2} className="shrink-0" />
+                <span className={`transition-all duration-300 whitespace-nowrap overflow-hidden ${isExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0 m-0'}`}>
+                  {item.title}
+                </span>
+              </NavLink>
+            );
+          })}
+        </nav>
+
+        {/* User Profile Section */}
+        <div className="p-4 border-t border-slate-800">
+          <div className={`flex items-center ${isExpanded ? 'justify-between px-3 py-3 bg-slate-800/50' : 'justify-center py-3 bg-transparent'} rounded-xl transition-all duration-300`}>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 shrink-0 rounded-xl bg-indigo-500 flex items-center justify-center text-white font-bold text-sm uppercase shadow-sm">
+                {user.username.charAt(0)}
+              </div>
+              <div className={`flex flex-col overflow-hidden transition-all duration-300 ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
+                <span className="text-sm font-bold text-white leading-tight truncate">{user.username}</span>
+                <span className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wider truncate">{user.role}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className={`text-slate-400 hover:text-red-400 p-2 rounded-lg hover:bg-red-400/10 transition-colors cursor-pointer shrink-0 ${!isExpanded && 'hidden'}`}
+              title="Logout"
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
+
+          {/* Tombol logout khusus saat mode shrink */}
+          {!isExpanded && (
+            <button
+              onClick={handleLogout}
+              className="mt-2 w-full flex justify-center text-slate-400 hover:text-red-400 p-2 rounded-xl hover:bg-red-400/10 cursor-pointer transition-colors"
+              title="Logout"
+            >
+              <LogOut size={20} />
+            </button>
+          )}
+        </div>
+      </aside>
+    </>
+  );
+};
+
+export default Sidebar;
+</file>
+
 <file path="src/pages/Produk.tsx">
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -2795,11 +3009,12 @@ export default Produk;
 <file path="src/pages/Transaksi.tsx">
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ShoppingCart, Plus, Minus, Trash2, UploadCloud, Calendar } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, UploadCloud, Calendar, ReceiptText } from 'lucide-react';
 import api from '../lib/axios';
 import { BusinessUnit, TransactionType, type Produk, type Voucher } from '../types/domain';
 import { handleApiError } from '../utils/errorHandler';
 import CurrencyInput from '../components/shared/CurrencyInput';
+
 interface CartItem extends Produk {
   cartId: string;
   kuantitas: number;
@@ -2807,15 +3022,18 @@ interface CartItem extends Produk {
   expiredAtInput?: string;
   originalHargaJual: number;
 }
+
 interface PaginatedResponse<T> {
   items: T[];
   meta: { nextCursor: number | null; hasNextPage: boolean };
 }
+
 const isWeekend = (dateStr: string) => {
   const date = dateStr ? new Date(dateStr) : new Date();
   const day = date.getDay();
   return day === 0 || day === 6;
 };
+
 const Transaksi = () => {
   const queryClient = useQueryClient();
   const [businessUnit, setBusinessUnit] = useState<BusinessUnit>(BusinessUnit.CAFE);
@@ -2823,6 +3041,7 @@ const Transaksi = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [fotoBukti, setFotoBukti] = useState<File | null>(null);
   const [waktuTransaksi, setWaktuTransaksi] = useState<string>('');
+
   const { data: produkData, isLoading } = useQuery({
     queryKey: ['products-pos', businessUnit],
     queryFn: async () => {
@@ -2832,6 +3051,7 @@ const Transaksi = () => {
       return response.data.data.items;
     },
   });
+
   const { data: voucherData } = useQuery({
     queryKey: ['vouchers-active'],
     queryFn: async () => {
@@ -2839,6 +3059,7 @@ const Transaksi = () => {
       return response.data.data.items.filter(v => v.isActive);
     },
   });
+
   const displayProducts = useMemo(() => {
     if (!produkData) return [];
     return produkData.filter((p) => {
@@ -2849,6 +3070,7 @@ const Transaksi = () => {
       }
     });
   }, [produkData, tipeTransaksi]);
+
   const cartSummary = useMemo(() => {
     let subtotal = 0;
     let totalDiskon = 0;
@@ -2861,6 +3083,7 @@ const Transaksi = () => {
     });
     return { subtotal, totalDiskon };
   }, [cart, tipeTransaksi]);
+
   const checkoutMutation = useMutation({
     mutationFn: async (formData: FormData) => {
       const response = await api.post('/transactions', formData, {
@@ -2877,6 +3100,7 @@ const Transaksi = () => {
     },
     onError: (error) => alert(handleApiError(error).message),
   });
+
   const handleAddToCart = (produk: Produk) => {
     if (tipeTransaksi === TransactionType.PEMASUKAN && produk.tipe === 'BARANG' && produk.stok <= 0) {
       alert('Stok produk habis!');
@@ -2916,6 +3140,7 @@ const Transaksi = () => {
       }];
     });
   };
+
   const handleUpdateCart = (cartId: string, field: keyof CartItem, value: any) => {
     setCart((prev) =>
       prev.map((item) => {
@@ -2930,9 +3155,11 @@ const Transaksi = () => {
       })
     );
   };
+
   const handleRemoveFromCart = (cartId: string) => {
     setCart((prev) => prev.filter((item) => item.cartId !== cartId));
   };
+
   const handleCheckout = () => {
     if (cart.length === 0) return alert('Keranjang masih kosong!');
     const formData = new FormData();
@@ -2955,179 +3182,228 @@ const Transaksi = () => {
     formData.append('items', JSON.stringify(itemsPayload));
     checkoutMutation.mutate(formData);
   };
+
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-8rem)]">
-      <div className="flex-1 flex flex-col bg-white rounded-[20px] shadow-sm border border-slate-200/80 overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between gap-4">
-          <div className="flex bg-slate-100 p-1 rounded-xl w-max">
+    // Menghapus h-[calc] yang baku, diganti dengan min-h untuk mobile dan max-h untuk desktop
+    <div className="flex flex-col xl:flex-row gap-6 h-full xl:max-h-[calc(100vh-7rem)]">
+
+      {/* PANEL KIRI: KATALOG PRODUK */}
+      <div className="flex-1 flex flex-col bg-white rounded-[24px] shadow-sm border border-slate-200/80 overflow-hidden min-h-[500px]">
+        {/* Header Filter Pos */}
+        <div className="p-4 md:p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between gap-4 bg-slate-50/30">
+          <div className="flex bg-slate-100 p-1.5 rounded-xl w-max border border-slate-200/60">
             {(Object.values(BusinessUnit) as BusinessUnit[]).map((unit) => (
               <button
                 key={unit}
                 onClick={() => { setBusinessUnit(unit); setCart([]); }}
-                className={`px-6 py-2 text-sm font-bold rounded-lg transition-all cursor-pointer ${businessUnit === unit ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                className={`px-5 md:px-6 py-2.5 text-[13px] font-bold rounded-lg transition-all cursor-pointer ${businessUnit === unit ? 'bg-white text-indigo-600 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
                   }`}
               >
                 {unit}
               </button>
             ))}
           </div>
-          <div className="flex bg-slate-100 p-1 rounded-xl w-max">
+
+          <div className="flex bg-slate-100 p-1.5 rounded-xl w-max border border-slate-200/60">
             <button
               onClick={() => { setTipeTransaksi(TransactionType.PEMASUKAN); setCart([]); }}
-              className={`px-4 py-2 text-sm font-bold rounded-lg transition-all cursor-pointer ${tipeTransaksi === TransactionType.PEMASUKAN ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-500'
+              className={`px-4 py-2.5 text-[13px] font-bold rounded-lg transition-all cursor-pointer flex items-center gap-2 ${tipeTransaksi === TransactionType.PEMASUKAN ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200/50'
                 }`}
             >
-              Penjualan (Masuk)
+              <Plus size={16} className={tipeTransaksi !== TransactionType.PEMASUKAN ? 'text-slate-400' : ''} /> Penjualan
             </button>
             <button
               onClick={() => { setTipeTransaksi(TransactionType.PENGELUARAN); setCart([]); }}
-              className={`px-4 py-2 text-sm font-bold rounded-lg transition-all cursor-pointer ${tipeTransaksi === TransactionType.PENGELUARAN ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-500'
+              className={`px-4 py-2.5 text-[13px] font-bold rounded-lg transition-all cursor-pointer flex items-center gap-2 ${tipeTransaksi === TransactionType.PENGELUARAN ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200/50'
                 }`}
             >
-              Pembelian (Keluar)
+              <Minus size={16} className={tipeTransaksi !== TransactionType.PENGELUARAN ? 'text-slate-400' : ''} /> Pembelian
             </button>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+
+        {/* List Produk */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar bg-slate-50/50">
           {isLoading ? (
-            <div className="text-center py-10 text-slate-500">Memuat produk...</div>
+            <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-3">
+              <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+              <p className="font-bold text-sm">Memuat Katalog Produk...</p>
+            </div>
           ) : displayProducts.length === 0 ? (
-            <div className="text-center py-10 text-slate-500">Tidak ada produk tersedia untuk kategori ini.</div>
+            <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-3">
+              <ReceiptText size={48} className="text-slate-300" />
+              <p className="font-medium text-sm">Katalog kosong untuk kategori ini.</p>
+            </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
               {displayProducts.map((produk) => (
-                <div
+                <button
                   key={produk.id}
                   onClick={() => handleAddToCart(produk)}
-                  className="border border-slate-200 rounded-xl p-4 hover:border-indigo-400 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer bg-slate-50/50 flex flex-col justify-between h-32"
+                  className="group relative border border-slate-200 rounded-2xl p-4 bg-white text-left hover:border-indigo-400 hover:shadow-lg hover:shadow-indigo-600/10 hover:-translate-y-1 transition-all active:scale-95 cursor-pointer flex flex-col justify-between h-36 overflow-hidden"
                 >
-                  <div>
-                    <div className="text-xs font-bold text-slate-400 mb-1">{produk.kategoriNama}</div>
-                    <h3 className="text-sm font-bold text-slate-800 line-clamp-2 leading-tight">{produk.nama}</h3>
+                  {/* Decorative background circle on hover */}
+                  <div className="absolute -right-6 -top-6 w-20 h-20 bg-indigo-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                  <div className="relative z-10">
+                    <div className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">{produk.kategoriNama}</div>
+                    <h3 className="text-[13px] md:text-sm font-bold text-slate-800 line-clamp-2 leading-snug group-hover:text-indigo-600 transition-colors">{produk.nama}</h3>
                   </div>
-                  <div className="flex justify-between items-end mt-2">
-                    <span className="text-indigo-600 font-black text-sm">
+
+                  <div className="relative z-10 flex justify-between items-end mt-2">
+                    <span className="text-indigo-600 font-black text-sm md:text-base">
                       Rp {new Intl.NumberFormat('id-ID').format(tipeTransaksi === TransactionType.PEMASUKAN ?
                         (isWeekend(waktuTransaksi) && produk.tipe === 'JASA' && produk.hargaJualWeekend ? Number(produk.hargaJualWeekend) : Number(produk.hargaJual))
                         : Number(produk.hargaBeli))}
                     </span>
                     {produk.tipe === 'BARANG' && (
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${produk.stok > 0 ? 'bg-slate-200 text-slate-600' : 'bg-red-100 text-red-600'}`}>
+                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${produk.stok > 0 ? 'bg-slate-100 text-slate-600' : 'bg-red-100 text-red-600'}`}>
                         Sisa: {produk.stok}
                       </span>
                     )}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}
         </div>
       </div>
-      <div className="w-full lg:w-[400px] flex flex-col bg-white rounded-[20px] shadow-sm border border-slate-200/80 overflow-hidden flex-shrink-0">
-        <div className="p-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
-          <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600">
-            <ShoppingCart size={20} />
+
+      {/* PANEL KANAN: KERANJANG TRANSAKSI */}
+      <div className="w-full xl:w-[420px] flex flex-col bg-white rounded-[24px] shadow-sm border border-slate-200/80 overflow-hidden flex-shrink-0 lg:sticky lg:top-0">
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600">
+              <ShoppingCart size={20} />
+            </div>
+            <div>
+              <h2 className="font-bold text-slate-800 tracking-tight">Keranjang</h2>
+              <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">{cart.length} Item dipilih</p>
+            </div>
           </div>
-          <div>
-            <h2 className="font-bold text-slate-800">Keranjang Transaksi</h2>
-            <p className="text-xs text-slate-500 font-medium">{cart.length} Item dipilih</p>
-          </div>
+
+          {cart.length > 0 && (
+            <button onClick={() => setCart([])} className="text-[11px] font-bold text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
+              Kosongkan
+            </button>
+          )}
         </div>
-        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar flex flex-col gap-4">
+
+        <div className="flex-1 overflow-y-auto p-5 custom-scrollbar flex flex-col gap-4">
           {cart.length === 0 ? (
-            <div className="m-auto text-center text-slate-400 text-sm">Keranjang kosong.<br />Pilih produk di sebelah kiri.</div>
+            <div className="m-auto flex flex-col items-center text-center text-slate-400 gap-3">
+              <ShoppingCart size={40} className="text-slate-200" />
+              <p className="text-sm font-medium">Keranjang kosong.<br />Silakan pilih produk dari katalog.</p>
+            </div>
           ) : (
             cart.map((item) => (
-              <div key={item.cartId} className="border border-slate-100 rounded-xl p-3 bg-white shadow-sm/50 relative">
-                <div className="flex justify-between items-start mb-2 pr-6">
-                  <h4 className="text-sm font-bold text-slate-800 leading-tight">{item.nama}</h4>
-                  <button onClick={() => handleRemoveFromCart(item.cartId)} className="absolute top-3 right-3 text-red-400 hover:text-red-600 transition-colors cursor-pointer">
+              <div key={item.cartId} className="border border-slate-100 rounded-2xl p-4 bg-white shadow-sm relative group hover:border-slate-300 transition-colors">
+                <div className="flex justify-between items-start mb-3 pr-8">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800 leading-tight mb-0.5">{item.nama}</h4>
+                    <p className="text-[11px] font-bold text-indigo-600">
+                      Rp {new Intl.NumberFormat('id-ID').format(tipeTransaksi === TransactionType.PEMASUKAN ? Number(item.hargaJual) : Number(item.hargaBeli))}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveFromCart(item.cartId)}
+                    className="absolute top-4 right-4 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                    title="Hapus Item"
+                  >
                     <Trash2 size={16} />
                   </button>
                 </div>
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-sm font-bold text-slate-700">
-                    Rp {new Intl.NumberFormat('id-ID').format(tipeTransaksi === TransactionType.PEMASUKAN ? Number(item.hargaJual) : Number(item.hargaBeli))}
-                  </span>
-                  <div className="flex items-center gap-3 bg-slate-100 rounded-lg p-1">
-                    <button onClick={() => handleUpdateCart(item.cartId, 'kuantitas', Math.max(1, item.kuantitas - 1))} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-slate-600 hover:text-indigo-600 cursor-pointer">
-                      <Minus size={14} />
+
+                <div className="flex items-center justify-between bg-slate-50 rounded-xl p-1.5 border border-slate-100">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest px-2">Kuantitas</span>
+                  <div className="flex items-center gap-1 bg-white rounded-lg p-0.5 border border-slate-200 shadow-sm">
+                    <button
+                      onClick={() => handleUpdateCart(item.cartId, 'kuantitas', Math.max(1, item.kuantitas - 1))}
+                      className="w-8 h-8 flex items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 hover:text-indigo-600 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <Minus size={16} />
                     </button>
-                    <span className="text-base font-black w-8 text-center text-slate-800">{item.kuantitas}</span>
-                    <button onClick={() => handleUpdateCart(item.cartId, 'kuantitas', item.kuantitas + 1)} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-slate-600 hover:text-indigo-600 cursor-pointer">
-                      <Plus size={14} />
+                    <span className="text-sm font-black w-8 text-center text-slate-800">{item.kuantitas}</span>
+                    <button
+                      onClick={() => handleUpdateCart(item.cartId, 'kuantitas', item.kuantitas + 1)}
+                      className="w-8 h-8 flex items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 hover:text-indigo-600 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <Plus size={16} />
                     </button>
                   </div>
                 </div>
-                <div className="mt-3 space-y-3 pt-3 border-t border-slate-50">
-                  {tipeTransaksi === TransactionType.PEMASUKAN && (
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Voucher / Preset Diskon</label>
-                      <div className="flex flex-wrap gap-2 mb-1">
 
-                        {voucherData?.map((voucher) => (
-                          <button
-                            key={voucher.id}
-                            onClick={() => {
-                              const harga = Number(item.hargaJual);
-                              const diskonPersen = Number(voucher.persentase) / 100;
-                              handleUpdateCart(item.cartId, 'diskonInput', (harga * item.kuantitas) * diskonPersen);
-                            }}
-                            className="text-[10px] px-2 py-1 bg-indigo-50 text-indigo-600 rounded-md font-bold hover:bg-indigo-100 transition-colors border border-indigo-200 cursor-pointer"
-                          >
-                            {voucher.nama} ({voucher.persentase}%)
-                          </button>
-                        ))}
-
+                {/* Bagian Diskon (Khusus Penjualan) */}
+                {tipeTransaksi === TransactionType.PEMASUKAN && (
+                  <div className="mt-3 pt-3 border-t border-slate-100 border-dashed">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Opsi Diskon (Pilih Salah Satu)</label>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {voucherData?.map((voucher) => (
                         <button
-                          onClick={() => handleUpdateCart(item.cartId, 'diskonInput', 0)}
-                          className="text-[10px] px-2 py-1 bg-slate-100 text-slate-600 rounded-md font-bold hover:bg-slate-200 transition-colors border border-slate-200 cursor-pointer"
+                          key={voucher.id}
+                          onClick={() => {
+                            const harga = Number(item.hargaJual);
+                            const diskonPersen = Number(voucher.persentase) / 100;
+                            handleUpdateCart(item.cartId, 'diskonInput', (harga * item.kuantitas) * diskonPersen);
+                          }}
+                          className="text-[11px] px-3 py-1.5 bg-white text-indigo-600 rounded-lg font-bold hover:bg-indigo-50 hover:border-indigo-300 transition-colors border border-indigo-200 cursor-pointer shadow-sm"
                         >
-                          Reset
+                          {voucher.nama} ({voucher.persentase}%)
                         </button>
-                      </div>
+                      ))}
+                      <button
+                        onClick={() => handleUpdateCart(item.cartId, 'diskonInput', 0)}
+                        className="text-[11px] px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg font-bold hover:bg-slate-200 transition-colors border border-slate-200 cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                    </div>
 
-                      <CurrencyInput
-                        label="Atau Nominal Manual (Rp)"
-                        name={`diskon-${item.cartId}`}
-                        value={item.diskonInput}
-                        onValueChange={(_, val) => handleUpdateCart(item.cartId, 'diskonInput', val)}
-                      />
-                    </div>
-                  )}
-                  {tipeTransaksi === TransactionType.PENGELUARAN && item.tipe === 'BARANG' && (
-                    <div className="flex flex-col gap-1.5 w-full bg-orange-50/50 p-2 rounded-lg border border-orange-100">
-                      <label className="text-[11px] font-bold text-orange-700 uppercase tracking-wider ml-1">Expired Date (Opsional)</label>
-                      <input
-                        type="date"
-                        value={item.expiredAtInput || ''}
-                        onChange={(e) => handleUpdateCart(item.cartId, 'expiredAtInput', e.target.value)}
-                        className="w-full px-3 py-2 text-sm rounded-xl border border-orange-200 outline-none focus:border-orange-500 bg-white text-black"
-                      />
-                    </div>
-                  )}
-                </div>
+                    <CurrencyInput
+                      label="Atau Diskon Manual (Rp)"
+                      name={`diskon-${item.cartId}`}
+                      value={item.diskonInput}
+                      onValueChange={(_, val) => handleUpdateCart(item.cartId, 'diskonInput', val)}
+                    />
+                  </div>
+                )}
+
+                {/* Bagian Tanggal Kadaluarsa (Khusus Pembelian) */}
+                {tipeTransaksi === TransactionType.PENGELUARAN && item.tipe === 'BARANG' && (
+                  <div className="mt-3 flex flex-col gap-1.5 w-full bg-orange-50/50 p-3 rounded-xl border border-orange-100">
+                    <label className="text-[10px] font-bold text-orange-700 uppercase tracking-wider">Expired Date (Wajib untuk Stok)</label>
+                    <input
+                      type="date"
+                      value={item.expiredAtInput || ''}
+                      onChange={(e) => handleUpdateCart(item.cartId, 'expiredAtInput', e.target.value)}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-orange-200 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 bg-white text-black transition-all"
+                    />
+                  </div>
+                )}
               </div>
             ))
           )}
         </div>
+
+        {/* SUMMARY & CHECKOUT BUTTON */}
         <div className="p-5 bg-slate-50 border-t border-slate-200 flex flex-col gap-4">
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Waktu Transaksi (Default: Saat ini)</label>
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Waktu (Opsional)</label>
               <div className="relative">
                 <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="datetime-local"
                   value={waktuTransaksi}
                   onChange={(e) => setWaktuTransaksi(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 outline-none focus:border-indigo-500 bg-white text-black"
+                  className="w-full pl-9 pr-2 py-2 text-xs font-medium rounded-xl border border-slate-200 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 bg-white text-black transition-all"
                 />
               </div>
             </div>
+
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">
-                {tipeTransaksi === TransactionType.PENGELUARAN ? 'Foto Bukti (Nota Beli / Foto Expired)' : 'Foto Bukti (Transfer/QRIS)'}
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1 truncate" title={tipeTransaksi === TransactionType.PENGELUARAN ? 'Nota Beli' : 'Struk/Transfer'}>
+                {tipeTransaksi === TransactionType.PENGELUARAN ? 'Bukti Nota' : 'Bukti Bayar'}
               </label>
               <div className="relative">
                 <UploadCloud size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -3135,36 +3411,44 @@ const Transaksi = () => {
                   type="file"
                   accept="image/*"
                   onChange={(e) => setFotoBukti(e.target.files?.[0] || null)}
-                  className="w-full pl-9 pr-3 py-1.5 text-sm rounded-xl border border-slate-200 bg-white file:hidden text-slate-600 cursor-pointer"
+                  className="w-full pl-9 pr-2 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-white text-slate-600 cursor-pointer file:hidden transition-all hover:border-slate-300"
                 />
               </div>
-              {fotoBukti && <span className="text-[10px] text-emerald-600 font-bold ml-1">File: {fotoBukti.name}</span>}
             </div>
+
+            {fotoBukti && <div className="col-span-2 text-[10px] text-emerald-600 font-bold ml-1 bg-emerald-50 p-1.5 rounded-lg truncate">📷 {fotoBukti.name}</div>}
           </div>
-          <div className="border-t border-slate-200 border-dashed pt-3">
-            {tipeTransaksi === TransactionType.PEMASUKAN && (
-              <div className="flex justify-between items-center mb-1 text-sm">
-                <span className="text-slate-500 font-medium">Total Diskon</span>
-                <span className="text-rose-500 font-bold">- Rp {new Intl.NumberFormat('id-ID').format(cartSummary.totalDiskon)}</span>
+
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            {tipeTransaksi === TransactionType.PEMASUKAN && cartSummary.totalDiskon > 0 && (
+              <div className="flex justify-between items-center mb-2 pb-2 border-b border-slate-100 border-dashed">
+                <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wider">Total Diskon</span>
+                <span className="text-sm text-rose-500 font-bold">- Rp {new Intl.NumberFormat('id-ID').format(cartSummary.totalDiskon)}</span>
               </div>
             )}
-            <div className="flex justify-between items-end mt-2">
-              <span className="text-sm font-bold text-slate-600 uppercase tracking-wider">Total Bayar</span>
-              <span className="text-2xl font-black text-indigo-600">Rp {new Intl.NumberFormat('id-ID').format(cartSummary.subtotal)}</span>
+            <div className="flex justify-between items-end">
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Total Bayar</span>
+              <span className="text-2xl md:text-3xl font-black text-indigo-600 tracking-tight">Rp {new Intl.NumberFormat('id-ID').format(cartSummary.subtotal)}</span>
             </div>
           </div>
+
           <button
             onClick={handleCheckout}
             disabled={checkoutMutation.isPending || cart.length === 0}
-            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-600/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex justify-center items-center gap-2"
           >
-            {checkoutMutation.isPending ? 'Memproses...' : `Proses Transaksi ${tipeTransaksi === TransactionType.PEMASUKAN ? 'Masuk' : 'Keluar'}`}
+            {checkoutMutation.isPending ? (
+              <>Memproses <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div></>
+            ) : (
+              `Bayar Transaksi`
+            )}
           </button>
         </div>
       </div>
     </div>
   );
 };
+
 export default Transaksi;
 </file>
 

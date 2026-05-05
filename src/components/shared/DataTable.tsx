@@ -83,12 +83,14 @@ const DataTable = <T extends Record<string, unknown>>({
 
   return (
     <div className="bg-white rounded-[20px] shadow-sm border border-slate-200/80 overflow-hidden flex flex-col transition-all duration-300">
-      <div className="p-6 md:px-8 md:py-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 border-b border-slate-100">
-        <div>
+
+      {/* Header Section */}
+      <div className="p-5 md:px-6 md:py-5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-slate-100">
+        <div className="w-full lg:w-auto">
           <div className="flex items-center gap-3 mb-1">
             <h2 className="text-lg font-bold text-slate-800 tracking-tight">{title}</h2>
             {!serverSide && (
-              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-slate-200/60">
+              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-slate-200/60 shrink-0">
                 {filteredData.length} Data
               </span>
             )}
@@ -98,32 +100,33 @@ const DataTable = <T extends Record<string, unknown>>({
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
           <div className="relative w-full sm:w-64 group">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
             <input
               type="text"
               placeholder="Cari data..."
               value={localSearchTerm}
               onChange={(e) => setLocalSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400"
+              className="w-full pl-11 pr-4 py-3 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400 shadow-sm/50"
             />
           </div>
 
           {onAdd && (
             <button
               onClick={onAdd}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl hover:bg-indigo-700 hover:shadow-lg transition-all duration-300 font-bold text-[13px] active:scale-95 cursor-pointer"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-3 sm:py-2.5 rounded-xl hover:bg-indigo-700 hover:shadow-lg transition-all duration-300 font-bold text-[13px] active:scale-95 cursor-pointer shrink-0"
             >
-              <Plus size={16} strokeWidth={2.5} />
+              <Plus size={18} strokeWidth={2.5} />
               Tambah Data
             </button>
           )}
         </div>
       </div>
 
-      <div className="overflow-x-auto custom-scrollbar">
-        <table className="w-full text-sm text-left border-collapse">
+      {/* Table Section */}
+      <div className="overflow-x-auto custom-scrollbar relative">
+        <table className="w-full text-sm text-left border-collapse min-w-[600px]">
           <thead>
-            <tr className="bg-slate-50/50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200/60">
+            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200">
               {expandedRowRender && <th className="px-4 py-4 w-10 text-center"></th>}
               {columns.map((col, index) => (
                 <th key={index} className="px-6 py-4 whitespace-nowrap">
@@ -131,7 +134,7 @@ const DataTable = <T extends Record<string, unknown>>({
                 </th>
               ))}
               {(onEdit || onDelete) && (
-                <th className="px-6 py-4 text-center whitespace-nowrap w-24">Aksi</th>
+                <th className="px-6 py-4 text-center whitespace-nowrap w-24 sticky right-0 bg-slate-50 border-l border-slate-200/60 z-10 shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.03)]">Aksi</th>
               )}
             </tr>
           </thead>
@@ -145,28 +148,34 @@ const DataTable = <T extends Record<string, unknown>>({
                       onClick={() => {
                         if (expandedRowRender) toggleRow(rowIndex);
                       }}
-                      className={`transition-colors duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50/50'} ${isExpanded ? 'bg-slate-50/80' : ''}`}
+                      className={`transition-colors duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50' : 'hover:bg-slate-50/50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
                     >
                       {expandedRowRender && (
-                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">
+                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-indigo-600 transition-colors">
                           {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                         </td>
                       )}
+
                       {columns.map((col, colIndex) => (
                         <td key={colIndex} className="px-6 py-4 text-slate-700 whitespace-nowrap font-medium">
                           {col.render ? col.render(row[col.accessor as keyof T], row) : String(row[col.accessor as keyof T] ?? '')}
                         </td>
                       ))}
+
+                      {/* Kolom Aksi yang Sticky */}
                       {(onEdit || onDelete) && (
-                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <td
+                          className={`px-6 py-4 sticky right-0 border-l border-slate-100 z-10 transition-colors duration-200 ${isExpanded ? 'bg-indigo-50/30' : 'bg-white group-hover:bg-slate-50'} shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.02)]`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
                             {onEdit && (
-                              <button onClick={() => onEdit(row)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all cursor-pointer">
+                              <button onClick={() => onEdit(row)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-100 rounded-lg transition-all cursor-pointer">
                                 <Edit2 size={16} />
                               </button>
                             )}
                             {onDelete && (
-                              <button onClick={() => onDelete(row)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer">
+                              <button onClick={() => onDelete(row)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all cursor-pointer">
                                 <Trash2 size={16} />
                               </button>
                             )}
@@ -174,10 +183,12 @@ const DataTable = <T extends Record<string, unknown>>({
                         </td>
                       )}
                     </tr>
+
+                    {/* Expanded Row */}
                     {isExpanded && expandedRowRender && (
-                      <tr className="bg-slate-50/30">
-                        <td colSpan={totalCols} className="px-6 py-6 border-b border-slate-100">
-                          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                      <tr className="bg-slate-50/50">
+                        <td colSpan={totalCols} className="px-0 sm:px-6 py-0 border-b border-slate-100">
+                          <div className="animate-in fade-in slide-in-from-top-2 duration-300 overflow-x-auto w-full">
                             {expandedRowRender(row)}
                           </div>
                         </td>
@@ -188,14 +199,14 @@ const DataTable = <T extends Record<string, unknown>>({
               })
             ) : (
               <tr>
-                <td colSpan={totalCols} className="px-6 py-24 text-center">
+                <td colSpan={totalCols} className="px-6 py-20 text-center bg-white">
                   <div className="flex flex-col items-center max-w-sm mx-auto">
                     <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
                       <FileX2 size={28} className="text-slate-400" />
                     </div>
                     <h3 className="text-slate-800 font-bold mb-1">Data tidak ditemukan</h3>
                     <p className="text-slate-500 text-[13px] font-medium leading-relaxed">
-                      Coba sesuaikan filter atau kata kunci pencarian Anda untuk menemukan data.
+                      Coba sesuaikan filter atau kata kunci pencarian Anda.
                     </p>
                   </div>
                 </td>
@@ -205,9 +216,10 @@ const DataTable = <T extends Record<string, unknown>>({
         </table>
       </div>
 
+      {/* Pagination Section */}
       {serverSide && (totalPages > 1 || hasNextPage !== undefined) && (
-        <div className="p-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
-          <span className="text-[13px] font-medium text-slate-500">
+        <div className="p-4 md:p-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
+          <span className="text-[13px] font-medium text-slate-500 text-center sm:text-left">
             {hasNextPage !== undefined ? (
               "Navigasi Data Halaman"
             ) : (
@@ -215,14 +227,14 @@ const DataTable = <T extends Record<string, unknown>>({
             )}
           </span>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-center gap-1.5 w-full sm:w-auto">
             <button
               onClick={() => onPrevPage ? onPrevPage() : onPageChange?.(page - 1)}
               disabled={onPrevPage ? !hasPrevPage : page === 1}
-              className="px-3 py-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-200 flex items-center gap-1.5"
+              className="px-3 md:px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-200 flex items-center gap-1.5 cursor-pointer"
             >
               <ChevronLeft size={18} />
-              {hasNextPage !== undefined && <span className="text-sm font-semibold">Prev</span>}
+              {hasNextPage !== undefined && <span className="text-sm font-bold hidden sm:block">Prev</span>}
             </button>
 
             {hasNextPage === undefined && getPageNumbers().map((num, idx) => (
@@ -232,9 +244,9 @@ const DataTable = <T extends Record<string, unknown>>({
                 <button
                   key={idx}
                   onClick={() => onPageChange?.(num as number)}
-                  className={`min-w-[36px] h-9 flex items-center justify-center rounded-lg text-[13px] font-bold transition-all cursor-pointer border ${page === num
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-200 hover:text-slate-900'
+                  className={`min-w-[44px] h-[44px] flex items-center justify-center rounded-xl text-[13px] font-bold transition-all cursor-pointer border ${page === num
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                 >
                   {num}
@@ -245,9 +257,9 @@ const DataTable = <T extends Record<string, unknown>>({
             <button
               onClick={() => onNextPage ? onNextPage() : onPageChange?.(page + 1)}
               disabled={onNextPage ? !hasNextPage : page === totalPages}
-              className="px-3 py-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-200 flex items-center gap-1.5"
+              className="px-3 md:px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-200 flex items-center gap-1.5 cursor-pointer"
             >
-              {hasNextPage !== undefined && <span className="text-sm font-semibold">Next</span>}
+              {hasNextPage !== undefined && <span className="text-sm font-bold hidden sm:block">Next</span>}
               <ChevronRight size={18} />
             </button>
           </div>
