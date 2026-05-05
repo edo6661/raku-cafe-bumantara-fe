@@ -1,7 +1,7 @@
 services:
-  assesment-wpp-web:
+  raku:
     build: .
-    container_name: assesment-wpp-web
+    container_name: raku
     restart: unless-stopped
     networks:
       - proxy-network

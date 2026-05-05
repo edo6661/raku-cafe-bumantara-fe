@@ -2,50 +2,21 @@
 
 @theme {
   --font-sans: "Montserrat", system-ui, sans-serif;
-  --font-heading: "", var(--font-sans);
+  --font-heading: "Montserrat", system-ui, sans-serif;
 
-  --radius-btn: 10px;
-  --radius-card: 20px;
-
-  --color-sidebar-bg: var(--sidebar-bg);
-  --color-sidebar-text: var(--sidebar-text);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-hover-bg: var(--sidebar-hover-bg);
-  --color-sidebar-active-bg: var(--sidebar-active-bg);
-  --color-sidebar-active-text: var(--sidebar-active-text);
+  --radius-btn: 0.75rem;
+  --radius-card: 1.25rem;
 }
 
 :root {
-  --section-padding-y: 6rem;
-  --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  --theme-background: #f1f5f9;
-  --theme-foreground: #1e293b;
-
-  --sidebar-bg: #f8fafc;
-  --sidebar-text: #64748b;
-  --sidebar-border: #e2e8f0;
-  --sidebar-hover-bg: #f1f5f9;
-  --sidebar-active-bg: #e0e7ff;
-  --sidebar-active-text: #4338ca;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --theme-background: #0f172a;
-    --theme-foreground: #f8fafc;
-
-    --sidebar-bg: #0f172a;
-    --sidebar-text: #94a3b8;
-    --sidebar-border: #1e293b;
-    --sidebar-hover-bg: #1e293b;
-    --sidebar-active-bg: #1e1b4b;
-    --sidebar-active-text: #818cf8;
-  }
+  --theme-background: #f8fafc; /* Lebih terang sedikit dari #f1f5f9 agar terlihat lebih bersih */
+  --theme-foreground: #0f172a;
 }
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 5rem;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
@@ -53,31 +24,31 @@ body {
   color: var(--theme-foreground);
   font-family: var(--font-sans);
   overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--font-heading);
-  letter-spacing: -0.03em;
-}
-
+/* Custom Scrollbar Premium */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 20px;
+  border-radius: 10px;
+  transition: background 0.3s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Base custom utilities */
+@layer utilities {
+  .glass-effect {
+    @apply bg-white/80 backdrop-blur-md border-b border-slate-200/50;
+  }
+  .soft-shadow {
+    @apply shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)];
+  }
 }
