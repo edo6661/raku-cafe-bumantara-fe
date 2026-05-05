@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Disallow: /assets/
+Disallow: /*.json$
+
+Sitemap: https://assesment.globalindo.tech/sitemap.xml

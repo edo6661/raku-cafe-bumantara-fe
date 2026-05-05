@@ -1,0 +1,2815 @@
+kode frontend:
+
+<file path="package.json">
+{
+  "name": "assesment-wpp",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.2.0",
+    "@tanstack/react-query": "^5.96.2",
+    "axios": "^1.15.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.38.0",
+    "i18next": "^25.8.11",
+    "lucide-react": "^0.575.0",
+    "motion": "^12.34.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.13.2",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@tanstack/react-query-devtools": "^5.96.2",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@types/react-signature-canvas": "^1.0.7",
+    "@vitejs/plugin-react-swc": "^4.2.2",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.48.0",
+    "vite": "^7.3.1"
+  }
+}
+</file>
+
+<file path="src/App.tsx">
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import PageLoader from './pages/PageLoader';
+import { QueryProvider } from './providers/QueryProvider';
+import RootLayout from './components/layouts/RootLayout';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Kategori = lazy(() => import('./pages/Kategori'));
+const Produk = lazy(() => import('./pages/Produk'));
+const Transaksi = lazy(() => import('./pages/Transaksi'));
+const HistoryTransaksi = lazy(() => import('./pages/HistoryTransaksi')); // <-- Tambahkan ini
+const Login = lazy(() => import('./pages/Login'));
+
+const App = () => {
+  return (
+    <QueryProvider>
+      <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+
+            <Route element={<RootLayout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/kategori" element={<Kategori />} />
+              <Route path="/produk" element={<Produk />} />
+              <Route path="/transaksi" element={<Transaksi />} />
+              <Route path="/history-transaksi" element={<HistoryTransaksi />} />
+            </Route>
+
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </QueryProvider>
+  );
+};
+
+export default App;
+</file>
+
+<file path="src/components/layouts/RootLayout.tsx">
+import { Outlet, Navigate } from 'react-router-dom';
+import Sidebar from '../Sidebar';
+import Navbar from '../Navbar';
+
+const RootLayout = () => {
+
+  const token = localStorage.getItem('token');
+
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
+      <Sidebar />
+      <div className="flex-1 flex flex-col w-full">
+        <Navbar />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-6 md:p-8">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default RootLayout;
+</file>
+
+<file path="src/components/Navbar.tsx">
+import { useLocation } from 'react-router-dom';
+
+const Navbar = () => {
+  const location = useLocation();
+
+  const getPageTitle = () => {
+    switch (location.pathname) {
+      case '/': return 'Dashboard Analitik';
+      case '/kategori': return 'Manajemen Kategori';
+      case '/produk': return 'Manajemen Produk & Stok';
+      case '/transaksi': return 'Pencatatan Transaksi';
+      case '/history-transaksi': return 'Riwayat Transaksi';
+      default: return 'Bumantara';
+    }
+  };
+
+  return (
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0 z-10">
+      <h2 className="text-lg font-bold text-slate-800 tracking-tight">
+        {getPageTitle()}
+      </h2>
+
+      <div className="flex items-center gap-4">
+        <span className="text-sm font-medium text-slate-500">
+          {new Date().toLocaleDateString('id-ID', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })}
+        </span>
+      </div>
+    </header>
+  );
+};
+
+export default Navbar;
+</file>
+
+<file path="src/components/shared/CurrencyInput.tsx">
+import React from 'react';
+interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type' | 'value'> {
+  label: string;
+  error?: string;
+  value: number | string;
+  onValueChange: (name: string, value: number) => void;
+  name: string;
+}
+const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: CurrencyInputProps) => {
+  const displayValue = value === 0 || value === '' ? '' : new Intl.NumberFormat('id-ID').format(Number(value));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/[^0-9]/g, '');
+    const numericValue = rawValue ? Number(rawValue) : 0;
+    onValueChange(name, numericValue);
+  };
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider transition-colors group-focus-within:text-black ml-1">
+        {label}
+      </label>
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <span className="text-slate-500 font-medium text-sm">Rp</span>
+        </div>
+        <input
+          type="text"
+          name={name}
+          value={displayValue}
+          onChange={handleChange}
+          className={`w-full pl-11 pr-4 py-2.5 text-sm rounded-xl border transition-all duration-300 outline-none placeholder:text-slate-400 shadow-sm/50 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed disabled:border-slate-200
+            ${error
+              ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
+              : 'border-slate-200 hover:border-slate-300 focus:bg-white focus:ring-4 focus:ring-black/5 focus:border-black text-slate-900 bg-white'
+            }`}
+          {...props}
+        />
+      </div>
+      {error && (
+        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+export default CurrencyInput;
+</file>
+
+<file path="src/components/shared/DataTable.tsx">
+import React, { useState, useMemo, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
+
+export interface Column<T> {
+  header: string;
+  accessor: keyof T | string;
+  render?: (value: unknown, row: T) => React.ReactNode;
+}
+
+interface DataTableProps<T> {
+  title: string;
+  columns: Column<T>[];
+  data: T[];
+  onAdd?: () => void;
+  onEdit?: (item: T) => void;
+  onDelete?: (item: T) => void;
+  expandedRowRender?: (row: T) => React.ReactNode;
+  serverSide?: boolean;
+  searchTerm?: string;
+  onSearchChange?: (val: string) => void;
+  page?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
+  hasNextPage?: boolean;
+  hasPrevPage?: boolean;
+  onNextPage?: () => void;
+  onPrevPage?: () => void;
+}
+
+const DataTable = <T extends Record<string, unknown>>({
+  title, columns, data, onAdd, onEdit, onDelete, expandedRowRender,
+  serverSide = false, searchTerm = '', onSearchChange,
+  page = 1, totalPages = 1, onPageChange,
+  hasNextPage, hasPrevPage, onNextPage, onPrevPage
+}: DataTableProps<T>) => {
+
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    if (serverSide && onSearchChange) {
+      const timeoutId = setTimeout(() => {
+        if (localSearchTerm !== searchTerm) {
+          onSearchChange(localSearchTerm);
+        }
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [localSearchTerm, serverSide, onSearchChange, searchTerm]);
+
+  const toggleRow = (rowIndex: number) => {
+    setExpandedRows((prev) => ({ ...prev, [rowIndex]: !prev[rowIndex] }));
+  };
+
+  const filteredData = useMemo(() => {
+    if (serverSide) return data;
+    if (!localSearchTerm) return data;
+
+    const lowercasedTerm = localSearchTerm.toLowerCase();
+    return data.filter((row) => {
+      return columns.some((col) => {
+        const value = row[col.accessor as keyof T];
+        if (value == null) return false;
+        return String(value).toLowerCase().includes(lowercasedTerm);
+      });
+    });
+  }, [data, localSearchTerm, columns, serverSide]);
+
+  const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (onEdit || onDelete ? 1 : 0);
+
+  const getPageNumbers = () => {
+    const delta = 1;
+    const range: Array<number | string> = [];
+    for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
+      range.push(i);
+    }
+    if (page - delta > 2) range.unshift("...");
+    if (page + delta < totalPages - 1) range.push("...");
+    range.unshift(1);
+    if (totalPages > 1) range.push(totalPages);
+    return range;
+  };
+
+  return (
+    <div className="bg-white rounded-[20px] shadow-sm border border-slate-200/80 overflow-hidden flex flex-col transition-all duration-300">
+      <div className="p-6 md:px-8 md:py-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 border-b border-slate-100">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-lg font-bold text-slate-800 tracking-tight">{title}</h2>
+            {!serverSide && (
+              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-slate-200/60">
+                {filteredData.length} Data
+              </span>
+            )}
+          </div>
+          <p className="text-[13px] text-slate-500 font-medium">Kelola dan pantau informasi operasional secara real-time.</p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+          <div className="relative w-full sm:w-64 group">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+            <input
+              type="text"
+              placeholder="Cari data..."
+              value={localSearchTerm}
+              onChange={(e) => setLocalSearchTerm(e.target.value)}
+              className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400"
+            />
+          </div>
+
+          {onAdd && (
+            <button
+              onClick={onAdd}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl hover:bg-indigo-700 hover:shadow-lg transition-all duration-300 font-bold text-[13px] active:scale-95 cursor-pointer"
+            >
+              <Plus size={16} strokeWidth={2.5} />
+              Tambah Data
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="overflow-x-auto custom-scrollbar">
+        <table className="w-full text-sm text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-50/50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200/60">
+              {expandedRowRender && <th className="px-4 py-4 w-10 text-center"></th>}
+              {columns.map((col, index) => (
+                <th key={index} className="px-6 py-4 whitespace-nowrap">
+                  {col.header}
+                </th>
+              ))}
+              {(onEdit || onDelete) && (
+                <th className="px-6 py-4 text-center whitespace-nowrap w-24">Aksi</th>
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filteredData.length > 0 ? (
+              filteredData.map((row, rowIndex) => {
+                const isExpanded = !!expandedRows[rowIndex];
+                return (
+                  <React.Fragment key={rowIndex}>
+                    <tr
+                      onClick={() => {
+                        if (expandedRowRender) toggleRow(rowIndex);
+                      }}
+                      className={`transition-colors duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50/50'} ${isExpanded ? 'bg-slate-50/80' : ''}`}
+                    >
+                      {expandedRowRender && (
+                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">
+                          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                        </td>
+                      )}
+                      {columns.map((col, colIndex) => (
+                        <td key={colIndex} className="px-6 py-4 text-slate-700 whitespace-nowrap font-medium">
+                          {col.render ? col.render(row[col.accessor as keyof T], row) : String(row[col.accessor as keyof T] ?? '')}
+                        </td>
+                      ))}
+                      {(onEdit || onDelete) && (
+                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            {onEdit && (
+                              <button onClick={() => onEdit(row)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all cursor-pointer">
+                                <Edit2 size={16} />
+                              </button>
+                            )}
+                            {onDelete && (
+                              <button onClick={() => onDelete(row)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer">
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                    {isExpanded && expandedRowRender && (
+                      <tr className="bg-slate-50/30">
+                        <td colSpan={totalCols} className="px-6 py-6 border-b border-slate-100">
+                          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            {expandedRowRender(row)}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={totalCols} className="px-6 py-24 text-center">
+                  <div className="flex flex-col items-center max-w-sm mx-auto">
+                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
+                      <FileX2 size={28} className="text-slate-400" />
+                    </div>
+                    <h3 className="text-slate-800 font-bold mb-1">Data tidak ditemukan</h3>
+                    <p className="text-slate-500 text-[13px] font-medium leading-relaxed">
+                      Coba sesuaikan filter atau kata kunci pencarian Anda untuk menemukan data.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {serverSide && (totalPages > 1 || hasNextPage !== undefined) && (
+        <div className="p-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
+          <span className="text-[13px] font-medium text-slate-500">
+            {hasNextPage !== undefined ? (
+              "Navigasi Data Halaman"
+            ) : (
+              <>Halaman <strong className="text-slate-900">{page}</strong> dari <strong className="text-slate-900">{totalPages}</strong></>
+            )}
+          </span>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => onPrevPage ? onPrevPage() : onPageChange?.(page - 1)}
+              disabled={onPrevPage ? !hasPrevPage : page === 1}
+              className="px-3 py-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-200 flex items-center gap-1.5"
+            >
+              <ChevronLeft size={18} />
+              {hasNextPage !== undefined && <span className="text-sm font-semibold">Prev</span>}
+            </button>
+
+            {hasNextPage === undefined && getPageNumbers().map((num, idx) => (
+              num === "..." ? (
+                <span key={idx} className="px-2 text-slate-400 font-bold tracking-widest">...</span>
+              ) : (
+                <button
+                  key={idx}
+                  onClick={() => onPageChange?.(num as number)}
+                  className={`min-w-[36px] h-9 flex items-center justify-center rounded-lg text-[13px] font-bold transition-all cursor-pointer border ${page === num
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-200 hover:text-slate-900'
+                    }`}
+                >
+                  {num}
+                </button>
+              )
+            ))}
+
+            <button
+              onClick={() => onNextPage ? onNextPage() : onPageChange?.(page + 1)}
+              disabled={onNextPage ? !hasNextPage : page === totalPages}
+              className="px-3 py-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-200 flex items-center gap-1.5"
+            >
+              {hasNextPage !== undefined && <span className="text-sm font-semibold">Next</span>}
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default DataTable;
+</file>
+
+<file path="src/components/shared/FileInput.tsx">
+import type { InputHTMLAttributes } from 'react';
+import { UploadCloud } from 'lucide-react';
+
+interface FileInputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  error?: string;
+}
+
+const FileInput = ({ label, error, ...props }: FileInputProps) => {
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider transition-colors group-focus-within:text-black ml-1">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          type="file"
+          className={`block w-full text-sm text-slate-500
+            file:mr-4 file:py-2.5 file:px-4
+            file:rounded-l-xl file:border-0
+            file:text-xs file:font-bold file:uppercase file:tracking-widest
+            file:bg-slate-900 file:text-white
+            hover:file:bg-black file:transition-all
+            file:cursor-pointer cursor-pointer
+            border rounded-xl shadow-sm/50 transition-all duration-300
+            ${error
+              ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500'
+              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-black/5 focus:border-black'
+            }
+          `}
+          {...props}
+        />
+        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-300 group-hover:text-slate-500 transition-colors">
+          <UploadCloud size={18} />
+        </div>
+      </div>
+      {error && (
+        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export default FileInput;
+</file>
+
+<file path="src/components/shared/Input.tsx">
+import type { InputHTMLAttributes } from 'react';
+import { twMerge } from 'tailwind-merge';
+
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  error?: string;
+}
+
+const Input = ({ label, error, className, ...props }: InputProps) => {
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      <label className="text-[12px] font-bold text-zinc-500 uppercase tracking-widest transition-colors group-focus-within:text-zinc-900 ml-1">
+        {label}
+      </label>
+      <input
+        className={twMerge(
+          "w-full px-4 py-3.5 text-sm rounded-xl border transition-all duration-300 outline-none placeholder:text-zinc-400 disabled:bg-zinc-50 disabled:text-zinc-400 disabled:cursor-not-allowed disabled:border-zinc-200",
+          error
+            ? "border-red-300 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-zinc-900"
+            : "border-zinc-200 hover:border-zinc-300 focus:bg-white focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 text-zinc-900 bg-zinc-50/50",
+          className
+        )}
+        {...props}
+      />
+      {error && (
+        <span className="text-[11px] font-semibold text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export default Input;
+</file>
+
+<file path="src/components/shared/Modal.tsx">
+import { type ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+}
+
+const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-zinc-950/40 backdrop-blur-sm transition-all"
+            onClick={onClose}
+          />
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative bg-white rounded-[24px] w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl ring-1 ring-zinc-900/5 overflow-hidden"
+          >
+            <div className="flex justify-between items-center px-8 py-6 border-b border-zinc-100 bg-white shrink-0">
+              <div>
+                <h3 className="text-xl font-bold text-zinc-900 tracking-tight">{title}</h3>
+                <p className="text-[12px] text-zinc-400 font-medium mt-1">Detail informasi tersimpan di sistem</p>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2.5 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl transition-all cursor-pointer bg-zinc-50"
+              >
+                <X size={20} strokeWidth={2} />
+              </button>
+            </div>
+
+            <div className="p-8 overflow-y-auto custom-scrollbar bg-zinc-50/30">
+              {children}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+};
+
+export default Modal;
+</file>
+
+<file path="src/components/shared/Select.tsx">
+import type { SelectHTMLAttributes } from 'react';
+
+interface Option {
+  value: string | number;
+  label: string;
+}
+
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  label: string;
+  options: Option[];
+  error?: string;
+}
+
+const Select = ({ label, options, error, ...props }: SelectProps) => {
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      <label className="text-[12px] font-bold text-zinc-500 uppercase tracking-widest transition-colors group-focus-within:text-zinc-900 ml-1">
+        {label}
+      </label>
+      <div className="relative">
+        <select
+          className={`w-full px-4 py-3.5 text-sm rounded-xl border transition-all duration-300 outline-none cursor-pointer appearance-none disabled:bg-zinc-50 disabled:text-zinc-400 disabled:cursor-not-allowed disabled:border-zinc-200
+            ${error
+              ? 'border-red-300 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-zinc-900'
+              : 'border-zinc-200 hover:border-zinc-300 focus:bg-white focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 text-zinc-900 bg-zinc-50/50'
+            }`}
+          {...props}
+        >
+          <option value="" disabled>Pilih {label}...</option>
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value} className="py-2">
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        {/* Custom Arrow Icon */}
+        <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-zinc-400 group-focus-within:text-zinc-900 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+      {error && (
+        <span className="text-[11px] font-semibold text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export default Select;
+</file>
+
+<file path="src/components/Sidebar.tsx">
+import { NavLink, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Tags, Package, ArrowRightLeft, LogOut } from 'lucide-react';
+const Sidebar = () => {
+  const navigate = useNavigate();
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : { username: 'Guest', role: 'UNKNOWN' };
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+  const menuItems = [
+    { title: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { title: 'Kategori', path: '/kategori', icon: Tags },
+    { title: 'Produk & Stok', path: '/produk', icon: Package },
+    { title: 'Transaksi', path: '/transaksi', icon: ArrowRightLeft },
+    { title: 'History', path: '/history-transaksi', icon: ArrowRightLeft },
+  ];
+  return (
+    <aside className="w-64 h-screen bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 transition-all duration-300">
+      <div className="h-16 flex items-center px-6 border-b border-slate-800">
+        <h1 className="text-white font-bold text-xl tracking-wider">BUMANTARA</h1>
+      </div>
+      <nav className="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto custom-scrollbar">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium text-[14px] ${isActive
+                  ? 'bg-indigo-600/10 text-indigo-400 font-bold'
+                  : 'hover:bg-slate-800 hover:text-white'
+                }`
+              }
+            >
+              <Icon size={20} strokeWidth={2} />
+              {item.title}
+            </NavLink>
+          );
+        })}
+      </nav>
+      <div className="p-4 border-t border-slate-800">
+        <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-slate-800/50">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-sm uppercase">
+              {user.username.charAt(0)}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-white leading-none">{user.username}</span>
+              <span className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">{user.role}</span>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-400/10 transition-colors cursor-pointer"
+            title="Logout"
+          >
+            <LogOut size={16} />
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+};
+export default Sidebar;
+</file>
+
+<file path="src/hooks/useCrud.ts">
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import api from "../lib/axios";
+
+export const useCrud = <T>(endpoint: string, queryKeyName: string) => {
+  const queryClient = useQueryClient();
+
+  const keys = {
+    all: [queryKeyName] as const,
+    detail: (id: string) => [queryKeyName, id] as const,
+  };
+
+  const getAll = useQuery({
+    queryKey: keys.all,
+    queryFn: async () => {
+      const { data } = await api.get<T[]>(endpoint);
+      return data;
+    },
+  });
+
+  const create = useMutation({
+    mutationFn: async (newData: Omit<T, "id">) => {
+      const { data } = await api.post<T>(endpoint, newData);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: keys.all });
+    },
+  });
+
+  const update = useMutation({
+    mutationFn: async ({ id, ...updateData }: Partial<T> & { id: string }) => {
+      const { data } = await api.put<T>(`${endpoint}/${id}`, updateData);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: keys.all });
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.delete(`${endpoint}/${id}`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: keys.all });
+    },
+  });
+
+  return { keys, getAll, create, update, remove };
+};
+</file>
+
+<file path="src/hooks/useForm.ts">
+import { useState } from "react";
+
+export const useForm = <T>(
+  initialState: T,
+  validateFn?: (values: T) => Partial<Record<keyof T, string>>,
+) => {
+  const [formData, setFormData] = useState<T>(initialState);
+  const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({});
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value, type } = e.target;
+    const parsedValue =
+      type === "number" ? (value === "" ? 0 : Number(value)) : value;
+
+    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+
+    if (errors[name as keyof T]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    fieldName: keyof T,
+  ) => {
+    const file = e.target.files?.[0];
+    setFormData((prev) => ({
+      ...prev,
+      [fieldName]: (file ? file.name : "") as unknown as T[keyof T],
+    }));
+  };
+
+  const validate = () => {
+    if (!validateFn) return true;
+    const newErrors = validateFn(formData);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const resetForm = () => {
+    setFormData(initialState);
+    setErrors({});
+  };
+
+  return {
+    formData,
+    setFormData,
+    errors,
+    setErrors,
+    handleChange,
+    handleFileChange,
+    validate,
+    resetForm,
+  };
+};
+</file>
+
+<file path="src/index.css">
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Montserrat", system-ui, sans-serif;
+  --font-heading: "", var(--font-sans);
+
+  --radius-btn: 10px;
+  --radius-card: 20px;
+
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-hover-bg: var(--sidebar-hover-bg);
+  --color-sidebar-active-bg: var(--sidebar-active-bg);
+  --color-sidebar-active-text: var(--sidebar-active-text);
+}
+
+:root {
+  --section-padding-y: 6rem;
+  --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  --theme-background: #f1f5f9;
+  --theme-foreground: #1e293b;
+
+  --sidebar-bg: #f8fafc;
+  --sidebar-text: #64748b;
+  --sidebar-border: #e2e8f0;
+  --sidebar-hover-bg: #f1f5f9;
+  --sidebar-active-bg: #e0e7ff;
+  --sidebar-active-text: #4338ca;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --theme-background: #0f172a;
+    --theme-foreground: #f8fafc;
+
+    --sidebar-bg: #0f172a;
+    --sidebar-text: #94a3b8;
+    --sidebar-border: #1e293b;
+    --sidebar-hover-bg: #1e293b;
+    --sidebar-active-bg: #1e1b4b;
+    --sidebar-active-text: #818cf8;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  background-color: var(--theme-background);
+  color: var(--theme-foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.03em;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 20px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+</file>
+
+<file path="src/lib/axios.ts">
+import axios from "axios";
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "/api/v1",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  },
+);
+export default api;
+</file>
+
+<file path="src/main.tsx">
+import ReactDOM from 'react-dom/client';
+import App from './App.tsx';
+import './index.css';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <App />
+);
+</file>
+
+<file path="src/pages/Dashboard.tsx">
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import {
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  AlertOctagon,
+  Package,
+  ArrowUpRight,
+  ArrowDownRight,
+  Filter
+} from 'lucide-react';
+import api from '../lib/axios';
+import { BusinessUnit, type DashboardSummary } from '../types/domain';
+import { formatDate } from '../utils/formatters';
+
+const Dashboard = () => {
+
+  const [filterPeriod, setFilterPeriod] = useState<string>('monthly');
+  const [filterUnit, setFilterUnit] = useState<BusinessUnit | ''>('');
+
+
+  const { data: dashboardData, isLoading, isError } = useQuery({
+    queryKey: ['dashboard-summary', filterPeriod, filterUnit],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (filterPeriod) params.append('filter', filterPeriod);
+      if (filterUnit) params.append('businessUnit', filterUnit);
+
+      const response = await api.get<{ data: DashboardSummary }>(`/dashboard/summary?${params.toString()}`);
+      return response.data.data;
+    },
+  });
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[400px]">
+        <div className="flex flex-col items-center gap-3 text-slate-400">
+          <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+          <p className="font-medium text-sm animate-pulse">Menghimpun data analitik...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !dashboardData) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[400px]">
+        <p className="text-red-500 font-medium bg-red-50 px-4 py-2 rounded-xl">Gagal memuat data dashboard.</p>
+      </div>
+    );
+  }
+
+  const { financial, inventory, expiringProducts, period } = dashboardData;
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* HEADER & FILTER */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-white p-5 rounded-[20px] shadow-sm border border-slate-200/80">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Dashboard Analitik</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Ringkasan performa pada periode <strong className="text-slate-700">{formatDate(period.startDate).split(' ')[0]} - {formatDate(period.endDate).split(' ')[0]}</strong>
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl">
+            <Filter size={16} className="text-slate-400" />
+            <select
+              value={filterPeriod}
+              onChange={(e) => setFilterPeriod(e.target.value)}
+              className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer"
+            >
+              <option value="daily">Hari Ini</option>
+              <option value="weekly">Minggu Ini</option>
+              <option value="monthly">Bulan Ini</option>
+              <option value="yearly">Tahun Ini</option>
+            </select>
+          </div>
+
+          <div className="flex bg-slate-100 p-1 rounded-xl">
+            <button
+              onClick={() => setFilterUnit('')}
+              className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-all cursor-pointer ${filterUnit === '' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
+            >
+              Semua
+            </button>
+            <button
+              onClick={() => setFilterUnit(BusinessUnit.PADEL)}
+              className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-all cursor-pointer ${filterUnit === BusinessUnit.PADEL ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
+            >
+              Padel
+            </button>
+            <button
+              onClick={() => setFilterUnit(BusinessUnit.CAFE)}
+              className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-all cursor-pointer ${filterUnit === BusinessUnit.CAFE ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
+            >
+              Cafe
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* FINANCIAL CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white p-6 rounded-[20px] shadow-sm border border-slate-200/80 flex flex-col justify-between relative overflow-hidden group">
+          <div className="absolute right-[-10%] top-[-10%] w-24 h-24 bg-emerald-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
+          <div className="relative z-10 flex justify-between items-start mb-4">
+            <div>
+              <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Total Pemasukan</p>
+              <h3 className="text-2xl font-black text-slate-800">{formatCurrency(financial.pemasukan)}</h3>
+            </div>
+            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center shrink-0">
+              <TrendingUp size={24} strokeWidth={2.5} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-[20px] shadow-sm border border-slate-200/80 flex flex-col justify-between relative overflow-hidden group">
+          <div className="absolute right-[-10%] top-[-10%] w-24 h-24 bg-rose-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
+          <div className="relative z-10 flex justify-between items-start mb-4">
+            <div>
+              <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Total Pengeluaran</p>
+              <h3 className="text-2xl font-black text-slate-800">{formatCurrency(financial.pengeluaran)}</h3>
+            </div>
+            <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center shrink-0">
+              <TrendingDown size={24} strokeWidth={2.5} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-slate-900 p-6 rounded-[20px] shadow-lg border border-slate-800 flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500/20 blur-2xl rounded-full"></div>
+          <div className="relative z-10 flex justify-between items-start mb-4">
+            <div>
+              <p className="text-sm font-bold text-indigo-200 uppercase tracking-wider mb-1">Laba Bersih (Net Profit)</p>
+              <h3 className={`text-2xl font-black ${financial.net >= 0 ? 'text-white' : 'text-rose-400'}`}>
+                {formatCurrency(financial.net)}
+              </h3>
+            </div>
+            <div className="w-12 h-12 bg-indigo-500/30 text-indigo-300 rounded-2xl flex items-center justify-center shrink-0">
+              <Wallet size={24} strokeWidth={2.5} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* INVENTORY MOVEMENT TABLE */}
+        <div className="xl:col-span-2 bg-white rounded-[20px] shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
+          <div className="p-5 border-b border-slate-100 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+              <Package size={20} />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-800">Pergerakan Stok (Inventory)</h2>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">Barang masuk dan keluar berdasarkan periode terpilih</p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto custom-scrollbar flex-1">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="bg-slate-50/50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200/60">
+                  <th className="px-6 py-4">Nama Produk</th>
+                  <th className="px-6 py-4 text-center">Stok Masuk</th>
+                  <th className="px-6 py-4 text-center">Stok Terjual</th>
+                  <th className="px-6 py-4 text-center">Sisa Saat Ini</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {inventory.length > 0 ? (
+                  inventory.map((item) => (
+                    <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <span className="font-bold text-slate-700 block">{item.nama}</span>
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider">{item.tipe}</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 font-bold text-xs">
+                          <ArrowDownRight size={14} />
+                          {item.masuk}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 font-bold text-xs">
+                          <ArrowUpRight size={14} />
+                          {item.terjual}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`font-black ${item.tipe === 'JASA' ? 'text-slate-300' : item.sisaStok <= 10 ? 'text-red-500' : 'text-slate-800'}`}>
+                          {item.tipe === 'JASA' ? '-' : item.sisaStok}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-12 text-center text-slate-500 font-medium text-sm">
+                      Belum ada data pergerakan stok.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* EXPIRING PRODUCTS ALERT */}
+        <div className="xl:col-span-1 bg-white rounded-[20px] shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
+          <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-orange-50/30">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600">
+                <AlertOctagon size={20} />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-800">Peringatan Kadaluarsa</h2>
+                <p className="text-xs text-orange-600/80 font-medium mt-0.5">Berakhir dalam &lt; 30 Hari</p>
+              </div>
+            </div>
+            <span className="bg-orange-600 text-white text-xs font-bold px-2 py-1 rounded-lg">
+              {expiringProducts.length}
+            </span>
+          </div>
+
+          <div className="p-4 flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3">
+            {expiringProducts.length > 0 ? (
+              expiringProducts.map((item) => {
+                const daysLeft = Math.ceil((new Date(item.expiredAt).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+                const isCritical = daysLeft <= 7;
+
+                return (
+                  <div key={item.id} className={`p-4 rounded-xl border ${isCritical ? 'bg-red-50/50 border-red-100' : 'bg-white border-slate-100 shadow-sm'}`}>
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-bold text-sm text-slate-800 leading-tight pr-4">{item.produk.nama}</h4>
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md whitespace-nowrap">
+                        Qty: {item.kuantitas}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mb-3">{item.produk.kategori.nama}</p>
+                    <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100/80">
+                      <span className="text-xs font-medium text-slate-500">{formatDate(item.expiredAt).split(' ')[0]}</span>
+                      <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg ${isCritical ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                        {daysLeft} Hari Lagi
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full py-10 text-center">
+                <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mb-3">
+                  <Package size={24} className="text-emerald-500" />
+                </div>
+                <h4 className="font-bold text-slate-700">Stok Aman</h4>
+                <p className="text-xs text-slate-500 mt-1 max-w-[200px]">Tidak ada bahan baku yang akan kadaluarsa dalam waktu dekat.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
+</file>
+
+<file path="src/pages/HistoryTransaksi.tsx">
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import api from '../lib/axios';
+import DataTable, { type Column } from '../components/shared/DataTable';
+import Modal from '../components/shared/Modal';
+import { BusinessUnit, TransactionType, type Transaksi } from '../types/domain';
+import { formatDate } from '../utils/formatters';
+import { ExternalLink, Receipt, Filter } from 'lucide-react';
+
+interface PaginatedResponse<T> {
+  items: T[];
+  meta: { nextCursor: number | null; hasNextPage: boolean };
+}
+
+
+type HistoryTableItem = Transaksi & Record<string, unknown>;
+
+const HistoryTransaksi = () => {
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [cursorHistory, setCursorHistory] = useState<(number | undefined)[]>([undefined]);
+  const currentCursor = cursorHistory[cursorHistory.length - 1];
+
+
+  const [filterUnit, setFilterUnit] = useState<BusinessUnit | ''>('');
+  const [filterTipe, setFilterTipe] = useState<TransactionType | ''>('');
+
+
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null);
+
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['transactions-history', searchTerm, currentCursor, filterUnit, filterTipe],
+    queryFn: async () => {
+      const params = new URLSearchParams({ limit: '10' });
+      if (searchTerm) params.append('search', searchTerm);
+      if (currentCursor) params.append('cursor', currentCursor.toString());
+      if (filterUnit) params.append('businessUnit', filterUnit);
+      if (filterTipe) params.append('tipe', filterTipe);
+
+      const response = await api.get<{ data: PaginatedResponse<Transaksi> }>(`/transactions?${params.toString()}`);
+      return response.data.data;
+    },
+  });
+
+
+  const handleSearch = (val: string) => {
+    setSearchTerm(val);
+    setCursorHistory([undefined]);
+  };
+
+  const handleNextPage = () => {
+    if (data?.meta.hasNextPage && data.meta.nextCursor) {
+      setCursorHistory((prev) => [...prev, data.meta.nextCursor as number]);
+    }
+  };
+
+  const handlePrevPage = () => setCursorHistory((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
+
+  const formatCurrency = (val: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
+
+
+  const columns: Column<HistoryTableItem>[] = [
+    {
+      header: 'No. Transaksi',
+      accessor: 'noTransaksi',
+      render: (val, row) => (
+        <div>
+          <div className="font-black text-slate-800">{String(val)}</div>
+          <div className="text-[11px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+            Oleh: <span className="font-bold text-slate-700">{row.user.username}</span>
+          </div>
+        </div>
+      )
+    },
+    {
+      header: 'Kategori',
+      accessor: 'tipe',
+      render: (_, row) => (
+        <div className="flex flex-col gap-1.5 items-start">
+          <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${row.tipe === TransactionType.PEMASUKAN ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+            }`}>
+            {row.tipe}
+          </span>
+          <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${row.businessUnit === BusinessUnit.PADEL ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-orange-50 text-orange-600 border border-orange-100'
+            }`}>
+            {row.businessUnit}
+          </span>
+        </div>
+      )
+    },
+    {
+      header: 'Waktu',
+      accessor: 'waktuTransaksi',
+      render: (val) => <span className="text-sm font-medium text-slate-600">{formatDate(String(val))}</span>
+    },
+    {
+      header: 'Total Nominal',
+      accessor: 'totalNominal',
+      render: (val, row) => (
+        <div>
+          <div className={`font-black ${row.tipe === TransactionType.PEMASUKAN ? 'text-emerald-600' : 'text-rose-600'}`}>
+            {row.tipe === TransactionType.PEMASUKAN ? '+' : '-'} {formatCurrency(Number(val))}
+          </div>
+          {Number(row.totalDiskon) > 0 && (
+            <div className="text-[10px] text-slate-400 font-medium">Diskon: {formatCurrency(Number(row.totalDiskon))}</div>
+          )}
+        </div>
+      )
+    },
+    {
+      header: 'Bukti',
+      accessor: 'fotoBuktiUrl',
+      render: (val) => val ? (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedPhotoUrl(String(val));
+            setIsPhotoModalOpen(true);
+          }}
+          className="p-1.5 bg-slate-100 hover:bg-indigo-100 text-slate-500 hover:text-indigo-600 rounded-lg transition-colors cursor-pointer"
+          title="Lihat Bukti"
+        >
+          <Receipt size={18} />
+        </button>
+      ) : <span className="text-[11px] text-slate-400 italic">Tidak ada</span>
+    }
+  ];
+
+
+  const expandedRowRender = (row: HistoryTableItem) => (
+    <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+      <h4 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+        Detail Item Transaksi
+      </h4>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 text-slate-500 text-[11px] uppercase tracking-wider">
+              <th className="pb-2 font-bold">Produk</th>
+              <th className="pb-2 font-bold text-center">Qty</th>
+              <th className="pb-2 font-bold text-right">Harga Satuan</th>
+              <th className="pb-2 font-bold text-right">Diskon</th>
+              <th className="pb-2 font-bold text-right">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {row.details.map((detail, idx) => (
+              <tr key={idx} className="hover:bg-slate-50/50">
+                <td className="py-2.5">
+                  <span className="font-bold text-slate-700">{detail.produk.nama}</span>
+                  <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-500">{detail.produk.tipe}</span>
+                </td>
+                <td className="py-2.5 text-center font-medium text-slate-600">{detail.kuantitas}</td>
+                <td className="py-2.5 text-right font-medium text-slate-600">
+                  {formatCurrency(row.tipe === TransactionType.PEMASUKAN ? detail.hargaJual : detail.hargaBeli)}
+                </td>
+                <td className="py-2.5 text-right font-medium text-rose-500">
+                  {detail.diskon > 0 ? formatCurrency(detail.diskon) : '-'}
+                </td>
+                <td className="py-2.5 text-right font-bold text-slate-800">
+                  {formatCurrency(detail.subtotal)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Riwayat Transaksi</h1>
+          <p className="text-sm text-slate-500">Pantau seluruh aktivitas pemasukan dan pengeluaran.</p>
+        </div>
+
+        {/* Filter Custom */}
+        <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-2 px-3 border-r border-slate-200">
+            <Filter size={14} className="text-slate-400" />
+            <select
+              value={filterTipe}
+              onChange={(e) => { setFilterTipe(e.target.value as TransactionType | ''); setCursorHistory([undefined]); }}
+              className="text-xs font-bold text-slate-600 bg-transparent outline-none cursor-pointer"
+            >
+              <option value="">Semua Tipe</option>
+              <option value={TransactionType.PEMASUKAN}>Pemasukan (Sales)</option>
+              <option value={TransactionType.PENGELUARAN}>Pengeluaran (Beli)</option>
+            </select>
+          </div>
+          <div className="px-2">
+            <select
+              value={filterUnit}
+              onChange={(e) => { setFilterUnit(e.target.value as BusinessUnit | ''); setCursorHistory([undefined]); }}
+              className="text-xs font-bold text-slate-600 bg-transparent outline-none cursor-pointer"
+            >
+              <option value="">Semua Unit</option>
+              <option value={BusinessUnit.PADEL}>Padel</option>
+              <option value={BusinessUnit.CAFE}>Cafe</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <DataTable<HistoryTableItem>
+        title="Daftar History Transaksi"
+        columns={columns}
+        data={(data?.items as HistoryTableItem[]) || []}
+        serverSide={true}
+        searchTerm={searchTerm}
+        onSearchChange={handleSearch}
+        expandedRowRender={expandedRowRender}
+        hasNextPage={data?.meta.hasNextPage}
+        hasPrevPage={cursorHistory.length > 1}
+        onNextPage={handleNextPage}
+        onPrevPage={handlePrevPage}
+      />
+
+      {/* Modal Foto Bukti */}
+      <Modal isOpen={isPhotoModalOpen} onClose={() => setIsPhotoModalOpen(false)} title="Bukti Transaksi">
+        <div className="flex flex-col items-center gap-4">
+          {selectedPhotoUrl ? (
+            <>
+              <img src={selectedPhotoUrl} alt="Bukti Transaksi" className="max-w-full max-h-[60vh] object-contain rounded-xl border border-slate-200" />
+              <a
+                href={selectedPhotoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-4 py-2 rounded-lg transition-colors"
+              >
+                Buka di Tab Baru <ExternalLink size={16} />
+              </a>
+            </>
+          ) : (
+            <p className="text-slate-500 py-10">Gambar tidak ditemukan.</p>
+          )}
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+export default HistoryTransaksi;
+</file>
+
+<file path="src/pages/Home.tsx">
+const Home = () => {
+  return (
+    <div>Home</div>
+  )
+}
+
+export default Home
+</file>
+
+<file path="src/pages/Kategori.tsx">
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '../lib/axios';
+import DataTable, { type Column } from '../components/shared/DataTable';
+import Modal from '../components/shared/Modal';
+import Input from '../components/shared/Input';
+import Select from '../components/shared/Select';
+import { handleApiError } from '../utils/errorHandler';
+import { formatDate } from '../utils/formatters';
+import { BusinessUnit, type Kategori as KategoriType } from '../types/domain';
+
+
+interface PaginatedResponse<T> {
+  items: T[];
+  meta: {
+    nextCursor: number | null;
+    hasNextPage: boolean;
+  };
+}
+
+
+interface KategoriFormPayload {
+  nama: string;
+  businessUnit: BusinessUnit | '';
+}
+
+const initialFormState: KategoriFormPayload = {
+  nama: '',
+  businessUnit: '',
+};
+
+const Kategori = () => {
+  const queryClient = useQueryClient();
+
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+
+  const [cursorHistory, setCursorHistory] = useState<(number | undefined)[]>([undefined]);
+  const currentCursor = cursorHistory[cursorHistory.length - 1];
+
+
+  const [formData, setFormData] = useState<KategoriFormPayload>(initialFormState);
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof KategoriFormPayload, string>>>({});
+
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['categories', searchTerm, currentCursor],
+    queryFn: async () => {
+      const params = new URLSearchParams({ limit: '10' });
+      if (searchTerm) params.append('search', searchTerm);
+      if (currentCursor) params.append('cursor', currentCursor.toString());
+
+      const response = await api.get<{ data: PaginatedResponse<KategoriType> }>(`/categories?${params.toString()}`);
+      return response.data.data;
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (payload: KategoriFormPayload) => {
+      await api.post('/categories', payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      handleCloseModal();
+    },
+    onError: (error) => {
+      const result = handleApiError(error);
+      alert(result.message);
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: Partial<KategoriFormPayload> }) => {
+      await api.patch(`/categories/${id}`, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      handleCloseModal();
+    },
+    onError: (error) => {
+      const result = handleApiError(error);
+      alert(result.message);
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/categories/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    },
+    onError: (error) => {
+      const result = handleApiError(error);
+      alert(result.message);
+    }
+  });
+
+
+  const handleSearch = (val: string) => {
+    setSearchTerm(val);
+    setCursorHistory([undefined]);
+  };
+
+  const handleNextPage = () => {
+    if (data?.meta.hasNextPage && data.meta.nextCursor) {
+      setCursorHistory((prev) => [...prev, data.meta.nextCursor as number]);
+    }
+  };
+
+  const handlePrevPage = () => {
+    setCursorHistory((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
+  };
+
+  const handleOpenModal = (kategori?: KategoriType) => {
+    setFormErrors({});
+    if (kategori) {
+      setEditingId(kategori.id);
+      setFormData({
+        nama: kategori.nama,
+        businessUnit: kategori.businessUnit,
+      });
+    } else {
+      setEditingId(null);
+      setFormData(initialFormState);
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setFormData(initialFormState);
+    setFormErrors({});
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (formErrors[name as keyof KategoriFormPayload]) {
+      setFormErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors: Partial<Record<keyof KategoriFormPayload, string>> = {};
+    if (!formData.nama || formData.nama.length < 3) {
+      errors.nama = 'Nama kategori minimal 3 karakter';
+    }
+    if (!formData.businessUnit) {
+      errors.businessUnit = 'Business Unit wajib dipilih';
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!validateForm()) return;
+
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, payload: formData });
+    } else {
+      createMutation.mutate(formData as KategoriFormPayload);
+    }
+  };
+
+  const handleDelete = (kategori: KategoriType) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus kategori "${kategori.nama}"?`)) {
+      deleteMutation.mutate(kategori.id);
+    }
+  };
+
+
+  const columns: Column<KategoriType>[] = [
+    { header: 'Nama Kategori', accessor: 'nama' },
+    {
+      header: 'Business Unit',
+      accessor: 'businessUnit',
+      render: (val) => (
+        <span className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-wider ${val === BusinessUnit.PADEL
+          ? 'bg-blue-50 text-blue-600 border border-blue-200'
+          : 'bg-orange-50 text-orange-600 border border-orange-200'
+          }`}>
+          {String(val)}
+        </span>
+      )
+    },
+    {
+      header: 'Dibuat Pada',
+      accessor: 'createdAt',
+      render: (val) => <span className="text-slate-500">{formatDate(String(val))}</span>
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Kategori</h1>
+        <p className="text-sm text-slate-500">Kelola kategori produk untuk Padel dan Cafe.</p>
+      </div>
+
+      <DataTable<KategoriType>
+        title="Daftar Kategori"
+        columns={columns}
+        data={data?.items || []}
+        serverSide={true}
+        searchTerm={searchTerm}
+        onSearchChange={handleSearch}
+        onAdd={() => handleOpenModal()}
+        onEdit={handleOpenModal}
+        onDelete={handleDelete}
+        hasNextPage={data?.meta.hasNextPage}
+        hasPrevPage={cursorHistory.length > 1}
+        onNextPage={handleNextPage}
+        onPrevPage={handlePrevPage}
+      />
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title={editingId ? 'Edit Kategori' : 'Tambah Kategori Baru'}
+      >
+        <div className="flex flex-col gap-4">
+          <Input
+            label="Nama Kategori"
+            name="nama"
+            placeholder="Masukkan nama kategori..."
+            value={formData.nama}
+            onChange={handleChange}
+            error={formErrors.nama}
+            disabled={createMutation.isPending || updateMutation.isPending}
+          />
+          <Select
+            label="Business Unit"
+            name="businessUnit"
+            value={formData.businessUnit}
+            onChange={handleChange}
+            error={formErrors.businessUnit}
+            disabled={createMutation.isPending || updateMutation.isPending}
+            options={[
+              { value: BusinessUnit.PADEL, label: 'Padel' },
+              { value: BusinessUnit.CAFE, label: 'Cafe' },
+            ]}
+          />
+
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-100">
+            <button
+              onClick={handleCloseModal}
+              className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+export default Kategori;
+</file>
+
+<file path="src/pages/Login.tsx">
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import api from '../lib/axios';
+import Input from '../components/shared/Input';
+import { handleApiError } from '../utils/errorHandler';
+import { Package } from 'lucide-react';
+
+const Login = () => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ email: '', password: '' });
+
+  const loginMutation = useMutation({
+    mutationFn: async (payload: typeof formData) => {
+      const response = await api.post('/auth/login', payload);
+      return response.data.data;
+    },
+    onSuccess: (data) => {
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      navigate('/', { replace: true });
+    },
+    onError: (error) => {
+      const result = handleApiError(error);
+      alert(result.message);
+    }
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.email || !formData.password) {
+      return alert('Email dan password wajib diisi');
+    }
+    loginMutation.mutate(formData);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-500/10 blur-3xl rounded-full"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-emerald-500/10 blur-3xl rounded-full"></div>
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <div className="flex justify-center">
+          <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-600/20">
+            <Package size={32} />
+          </div>
+        </div>
+        <h2 className="mt-6 text-center text-3xl font-black text-slate-900 tracking-tight">
+          Login ke Bumantara
+        </h2>
+        <p className="mt-2 text-center text-sm text-slate-500 font-medium">
+          Sistem ERP Point of Sale & Inventory
+        </p>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <div className="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-[24px] sm:px-10 border border-slate-100">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <Input
+              label="Email Address"
+              name="email"
+              type="email"
+              placeholder="admin@gmail.com"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
+
+            <Input
+              label="Password"
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
+
+            <div>
+              <button
+                type="submit"
+                disabled={loginMutation.isPending}
+                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] cursor-pointer"
+              >
+                {loginMutation.isPending ? 'Memverifikasi...' : 'Masuk Sistem'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
+</file>
+
+<file path="src/pages/PageLoader.tsx">
+const PageLoader = () => {
+  return (
+    <p>
+      loading
+    </p>
+  );
+};
+export default PageLoader;
+</file>
+
+<file path="src/pages/Produk.tsx">
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '../lib/axios';
+import DataTable, { type Column } from '../components/shared/DataTable';
+import Modal from '../components/shared/Modal';
+import Input from '../components/shared/Input';
+import Select from '../components/shared/Select';
+import CurrencyInput from '../components/shared/CurrencyInput';
+import { handleApiError } from '../utils/errorHandler';
+import { ProductType, type Produk as ProdukType, type Kategori as KategoriType } from '../types/domain';
+
+interface PaginatedResponse<T> {
+  items: T[];
+  meta: {
+    nextCursor: number | null;
+    hasNextPage: boolean;
+  };
+}
+
+interface ProdukFormPayload {
+  kategoriId: number | '';
+  nama: string;
+  tipe: ProductType | '';
+  stok: number;
+  hargaBeli: number;
+  hargaJual: number;
+}
+
+const initialFormState: ProdukFormPayload = {
+  kategoriId: '',
+  nama: '',
+  tipe: '',
+  stok: 0,
+  hargaBeli: 0,
+  hargaJual: 0,
+};
+
+// FIX 1: Membuat intersection type agar memenuhi konstrain 'Record<string, unknown>'
+type ProdukTableItem = ProdukType & Record<string, unknown>;
+
+const Produk = () => {
+  const queryClient = useQueryClient();
+
+  // State untuk Data Table & Pagination
+  const [searchTerm, setSearchTerm] = useState('');
+  const [cursorHistory, setCursorHistory] = useState<(number | undefined)[]>([undefined]);
+  const currentCursor = cursorHistory[cursorHistory.length - 1];
+
+  // State untuk Modal Form Produk
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [formData, setFormData] = useState<ProdukFormPayload>(initialFormState);
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof ProdukFormPayload, string>>>({});
+
+  // State untuk Modal Adjust Stock (Opname)
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [selectedProdukId, setSelectedProdukId] = useState<number | null>(null);
+  const [stockAdjustment, setStockAdjustment] = useState({ jumlahPenyesuaian: 0, keterangan: '' });
+
+  // Queries
+  const { data: produkData, isLoading } = useQuery({
+    queryKey: ['products', searchTerm, currentCursor],
+    queryFn: async () => {
+      const params = new URLSearchParams({ limit: '10' });
+      if (searchTerm) params.append('search', searchTerm);
+      if (currentCursor) params.append('cursor', currentCursor.toString());
+      const response = await api.get<{ data: PaginatedResponse<ProdukType> }>(`/products?${params.toString()}`);
+      return response.data.data;
+    },
+  });
+
+  const { data: kategoriData } = useQuery({
+    queryKey: ['categories-all'],
+    queryFn: async () => {
+      const response = await api.get<{ data: PaginatedResponse<KategoriType> }>(`/categories?limit=100`);
+      return response.data.data.items;
+    },
+  });
+
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: async (payload: Omit<ProdukFormPayload, 'kategoriId' | 'tipe'> & { kategoriId: number, tipe: ProductType }) => {
+      await api.post('/products', payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      handleCloseModal();
+    },
+    onError: (error) => alert(handleApiError(error).message)
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: Partial<ProdukFormPayload> }) => {
+      await api.patch(`/products/${id}`, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      handleCloseModal();
+    },
+    onError: (error) => alert(handleApiError(error).message)
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/products/${id}`);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] }),
+    onError: (error) => alert(handleApiError(error).message)
+  });
+
+  const adjustStockMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: { jumlahPenyesuaian: number, keterangan: string } }) => {
+      await api.post(`/products/${id}/adjust`, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      handleCloseStockModal();
+    },
+    onError: (error) => alert(handleApiError(error).message)
+  });
+
+  // Handlers
+  const handleSearch = (val: string) => {
+    setSearchTerm(val);
+    setCursorHistory([undefined]);
+  };
+
+  const handleNextPage = () => {
+    if (produkData?.meta.hasNextPage && produkData.meta.nextCursor) {
+      setCursorHistory((prev) => [...prev, produkData.meta.nextCursor as number]);
+    }
+  };
+
+  const handlePrevPage = () => setCursorHistory((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
+
+  const handleOpenModal = (produk?: ProdukType) => {
+    setFormErrors({});
+    if (produk) {
+      setEditingId(produk.id);
+      setFormData({
+        kategoriId: produk.kategoriId,
+        nama: produk.nama,
+        tipe: produk.tipe,
+        stok: produk.stok,
+        hargaBeli: produk.hargaBeli,
+        hargaJual: produk.hargaJual,
+      });
+    } else {
+      setEditingId(null);
+      setFormData(initialFormState);
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setFormData(initialFormState);
+  };
+
+  const handleOpenStockModal = (produk: ProdukType) => {
+    setSelectedProdukId(produk.id);
+    setStockAdjustment({ jumlahPenyesuaian: 0, keterangan: '' });
+    setIsStockModalOpen(true);
+  };
+
+  const handleCloseStockModal = () => {
+    setIsStockModalOpen(false);
+    setSelectedProdukId(null);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'number' ? Number(value) : value
+    }));
+  };
+
+  const handleCurrencyChange = (name: string, value: number) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = () => {
+    const errors: Partial<Record<keyof ProdukFormPayload, string>> = {};
+    if (!formData.nama) errors.nama = 'Nama produk wajib diisi';
+    if (!formData.kategoriId) errors.kategoriId = 'Kategori wajib dipilih';
+    if (!formData.tipe) errors.tipe = 'Tipe wajib dipilih';
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, payload: formData });
+    } else {
+      createMutation.mutate(formData as any);
+    }
+  };
+
+  const columns: Column<ProdukTableItem>[] = [
+    {
+      header: 'Produk', accessor: 'nama', render: (val, row) => (
+        <div>
+          <div className="font-bold text-slate-800">{String(val)}</div>
+          <div className="text-[11px] text-slate-500">{String(row.kategoriNama)} • {String(row.businessUnit)}</div>
+        </div>
+      )
+    },
+    {
+      header: 'Tipe', accessor: 'tipe', render: (val) => (
+        <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${val === 'BARANG' ? 'bg-emerald-100 text-emerald-700' : 'bg-purple-100 text-purple-700'}`}>
+          {String(val)}
+        </span>
+      )
+    },
+    {
+      header: 'Stok', accessor: 'stok', render: (val, row) => (
+        <div className="flex items-center gap-2">
+          <span className={`font-medium ${row.tipe === 'JASA' ? 'text-slate-400' : Number(val) <= 10 ? 'text-red-600' : 'text-slate-700'}`}>
+            {row.tipe === 'JASA' ? '∞' : String(val)}
+          </span>
+          {row.tipe === 'BARANG' && (
+            <button onClick={() => handleOpenStockModal(row as ProdukType)} className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded transition-colors cursor-pointer">
+              Opname
+            </button>
+          )}
+        </div>
+      )
+    },
+    { header: 'Harga Beli', accessor: 'hargaBeli', render: (val) => `Rp ${new Intl.NumberFormat('id-ID').format(Number(val))}` },
+    { header: 'Harga Jual', accessor: 'hargaJual', render: (val) => `Rp ${new Intl.NumberFormat('id-ID').format(Number(val))}` },
+  ];
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Manajemen Produk & Stok</h1>
+        <p className="text-sm text-slate-500">Kelola master data lapangan, F&B, dan bahan baku operasional.</p>
+      </div>
+
+      <DataTable<ProdukTableItem>
+        title="Daftar Master Produk"
+        columns={columns}
+        // FIX 1.5: Lempar item dengan tipe alias yang sudah dibuat
+        data={(produkData?.items as ProdukTableItem[]) || []}
+        serverSide={true}
+        searchTerm={searchTerm}
+        onSearchChange={handleSearch}
+        onAdd={() => handleOpenModal()}
+        onEdit={(row) => handleOpenModal(row as ProdukType)}
+        onDelete={(row) => {
+          if (window.confirm(`Hapus produk ${row.nama}?`)) deleteMutation.mutate(Number(row.id));
+        }}
+        hasNextPage={produkData?.meta.hasNextPage}
+        hasPrevPage={cursorHistory.length > 1}
+        onNextPage={handleNextPage}
+        onPrevPage={handlePrevPage}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingId ? 'Edit Produk' : 'Tambah Produk Baru'}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input label="Nama Produk" name="nama" value={formData.nama} onChange={handleChange} error={formErrors.nama} />
+          <Select
+            label="Kategori" name="kategoriId"
+            value={formData.kategoriId} onChange={handleChange} error={formErrors.kategoriId}
+            options={kategoriData?.map(k => ({ value: k.id, label: `${k.nama} (${k.businessUnit})` })) || []}
+          />
+          <Select
+            label="Tipe (Barang Fisik / Jasa Lapangan)" name="tipe"
+            value={formData.tipe} onChange={handleChange} error={formErrors.tipe}
+            options={[{ value: ProductType.BARANG, label: 'Barang (F&B / Bahan Baku)' }, { value: ProductType.JASA, label: 'Jasa (Sewa Lapangan)' }]}
+          />
+          <Input
+            label="Stok Awal" name="stok" type="number"
+            value={formData.stok} onChange={handleChange}
+            disabled={formData.tipe === ProductType.JASA}
+            className="text-lg font-bold disabled:opacity-60"
+          />
+          <CurrencyInput label="Harga Beli / Modal" name="hargaBeli" value={formData.hargaBeli} onValueChange={handleCurrencyChange} />
+          <CurrencyInput label="Harga Jual" name="hargaJual" value={formData.hargaJual} onValueChange={handleCurrencyChange} />
+        </div>
+        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+          <button onClick={handleCloseModal} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">Batal</button>
+          <button onClick={handleSubmit} className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl cursor-pointer">Simpan Data</button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={isStockModalOpen} onClose={handleCloseStockModal} title="Penyesuaian Stok (Opname)">
+        <div className="flex flex-col gap-4">
+          <div className="bg-orange-50 text-orange-800 p-4 rounded-xl text-sm mb-2 border border-orange-100">
+            <strong>Catatan:</strong> Gunakan nilai minus (-) untuk mengurangi stok (barang rusak/kadaluarsa), dan positif (+) untuk menambah stok (koreksi).
+          </div>
+          <Input
+            label="Jumlah Penyesuaian" type="number"
+            value={stockAdjustment.jumlahPenyesuaian}
+            onChange={(e) => setStockAdjustment(p => ({ ...p, jumlahPenyesuaian: Number(e.target.value) }))}
+          />
+          <Input
+            label="Keterangan Audit"
+            placeholder="Contoh: Barang rusak, koreksi perhitungan..."
+            value={stockAdjustment.keterangan}
+            onChange={(e) => setStockAdjustment(p => ({ ...p, keterangan: e.target.value }))}
+          />
+        </div>
+        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+          <button onClick={handleCloseStockModal} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">Batal</button>
+          <button
+            onClick={() => adjustStockMutation.mutate({ id: selectedProdukId!, payload: stockAdjustment })}
+            className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl cursor-pointer"
+          >
+            Simpan Penyesuaian
+          </button>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+export default Produk;
+</file>
+
+<file path="src/pages/Transaksi.tsx">
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ShoppingCart, Plus, Minus, Trash2, UploadCloud, Calendar } from 'lucide-react';
+import api from '../lib/axios';
+import { BusinessUnit, TransactionType, type Produk } from '../types/domain';
+import { handleApiError } from '../utils/errorHandler';
+import CurrencyInput from '../components/shared/CurrencyInput';
+interface CartItem extends Produk {
+  cartId: string;
+  kuantitas: number;
+  diskonInput: number;
+  expiredAtInput?: string;
+}
+interface PaginatedResponse<T> {
+  items: T[];
+  meta: { nextCursor: number | null; hasNextPage: boolean };
+}
+const Transaksi = () => {
+  const queryClient = useQueryClient();
+  const [businessUnit, setBusinessUnit] = useState<BusinessUnit>(BusinessUnit.CAFE);
+  const [tipeTransaksi, setTipeTransaksi] = useState<TransactionType>(TransactionType.PEMASUKAN);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [fotoBukti, setFotoBukti] = useState<File | null>(null);
+  const [waktuTransaksi, setWaktuTransaksi] = useState<string>('');
+  const { data: produkData, isLoading } = useQuery({
+    queryKey: ['products-pos', businessUnit],
+    queryFn: async () => {
+      const response = await api.get<{ data: PaginatedResponse<Produk> }>(
+        `/products?limit=100&businessUnit=${businessUnit}`
+      );
+      return response.data.data.items;
+    },
+  });
+  const displayProducts = useMemo(() => {
+    if (!produkData) return [];
+    return produkData.filter((p) => {
+      if (tipeTransaksi === TransactionType.PEMASUKAN) {
+        return Number(p.hargaJual) > 0;
+      } else {
+        return p.tipe === 'BARANG';
+      }
+    });
+  }, [produkData, tipeTransaksi]);
+  const cartSummary = useMemo(() => {
+    let subtotal = 0;
+    let totalDiskon = 0;
+    cart.forEach((item) => {
+      const harga = tipeTransaksi === TransactionType.PEMASUKAN ? Number(item.hargaJual) : Number(item.hargaBeli);
+      const kotor = harga * item.kuantitas;
+      const diskon = Math.min(item.diskonInput, kotor);
+      subtotal += (kotor - diskon);
+      totalDiskon += diskon;
+    });
+    return { subtotal, totalDiskon };
+  }, [cart, tipeTransaksi]);
+  const checkoutMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await api.post('/transactions', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      alert('Transaksi berhasil disimpan!');
+      setCart([]);
+      setFotoBukti(null);
+      setWaktuTransaksi('');
+      queryClient.invalidateQueries({ queryKey: ['products-pos'] });
+    },
+    onError: (error) => alert(handleApiError(error).message),
+  });
+  const handleAddToCart = (produk: Produk) => {
+    if (tipeTransaksi === TransactionType.PEMASUKAN && produk.tipe === 'BARANG' && produk.stok <= 0) {
+      alert('Stok produk habis!');
+      return;
+    }
+    setCart((prev) => {
+      const existing = prev.find((item) => item.id === produk.id);
+      if (existing) {
+        if (tipeTransaksi === TransactionType.PEMASUKAN && produk.tipe === 'BARANG' && existing.kuantitas >= produk.stok) {
+          alert('Mencapai batas maksimal stok yang tersedia!');
+          return prev;
+        }
+        return prev.map((item) =>
+          item.id === produk.id ? { ...item, kuantitas: item.kuantitas + 1 } : item
+        );
+      }
+      return [...prev, { ...produk, cartId: Math.random().toString(36).substr(2, 9), kuantitas: 1, diskonInput: 0 }];
+    });
+  };
+  const handleUpdateCart = (cartId: string, field: keyof CartItem, value: any) => {
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.cartId === cartId) {
+          if (field === 'kuantitas' && tipeTransaksi === TransactionType.PEMASUKAN && item.tipe === 'BARANG' && value > item.stok) {
+            alert('Mencapai batas maksimal stok!');
+            return item;
+          }
+          return { ...item, [field]: value };
+        }
+        return item;
+      })
+    );
+  };
+  const handleRemoveFromCart = (cartId: string) => {
+    setCart((prev) => prev.filter((item) => item.cartId !== cartId));
+  };
+  const handleCheckout = () => {
+    if (cart.length === 0) return alert('Keranjang masih kosong!');
+    const formData = new FormData();
+    formData.append('businessUnit', businessUnit);
+    formData.append('tipe', tipeTransaksi);
+    if (waktuTransaksi) {
+      formData.append('waktuTransaksi', new Date(waktuTransaksi).toISOString());
+    }
+    if (fotoBukti) {
+      formData.append('fotoBukti', fotoBukti);
+    }
+    const itemsPayload = cart.map((item) => ({
+      produkId: item.id,
+      kuantitas: item.kuantitas,
+      hargaBeli: Number(item.hargaBeli),
+      hargaJual: Number(item.hargaJual),
+      diskon: item.diskonInput,
+      expiredAt: item.expiredAtInput ? new Date(item.expiredAtInput).toISOString() : undefined,
+    }));
+    formData.append('items', JSON.stringify(itemsPayload));
+    checkoutMutation.mutate(formData);
+  };
+  return (
+    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-8rem)]">
+      <div className="flex-1 flex flex-col bg-white rounded-[20px] shadow-sm border border-slate-200/80 overflow-hidden">
+        <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between gap-4">
+          <div className="flex bg-slate-100 p-1 rounded-xl w-max">
+            {(Object.values(BusinessUnit) as BusinessUnit[]).map((unit) => (
+              <button
+                key={unit}
+                onClick={() => { setBusinessUnit(unit); setCart([]); }}
+                className={`px-6 py-2 text-sm font-bold rounded-lg transition-all cursor-pointer ${businessUnit === unit ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+              >
+                {unit}
+              </button>
+            ))}
+          </div>
+          <div className="flex bg-slate-100 p-1 rounded-xl w-max">
+            <button
+              onClick={() => { setTipeTransaksi(TransactionType.PEMASUKAN); setCart([]); }}
+              className={`px-4 py-2 text-sm font-bold rounded-lg transition-all cursor-pointer ${tipeTransaksi === TransactionType.PEMASUKAN ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-500'
+                }`}
+            >
+              Penjualan (Masuk)
+            </button>
+            <button
+              onClick={() => { setTipeTransaksi(TransactionType.PENGELUARAN); setCart([]); }}
+              className={`px-4 py-2 text-sm font-bold rounded-lg transition-all cursor-pointer ${tipeTransaksi === TransactionType.PENGELUARAN ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-500'
+                }`}
+            >
+              Pembelian (Keluar)
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+          {isLoading ? (
+            <div className="text-center py-10 text-slate-500">Memuat produk...</div>
+          ) : displayProducts.length === 0 ? (
+            <div className="text-center py-10 text-slate-500">Tidak ada produk tersedia untuk kategori ini.</div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              {displayProducts.map((produk) => (
+                <div
+                  key={produk.id}
+                  onClick={() => handleAddToCart(produk)}
+                  className="border border-slate-200 rounded-xl p-4 hover:border-indigo-400 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer bg-slate-50/50 flex flex-col justify-between h-32"
+                >
+                  <div>
+                    <div className="text-xs font-bold text-slate-400 mb-1">{produk.kategoriNama}</div>
+                    <h3 className="text-sm font-bold text-slate-800 line-clamp-2 leading-tight">{produk.nama}</h3>
+                  </div>
+                  <div className="flex justify-between items-end mt-2">
+                    <span className="text-indigo-600 font-black text-sm">
+                      Rp {new Intl.NumberFormat('id-ID').format(tipeTransaksi === TransactionType.PEMASUKAN ? Number(produk.hargaJual) : Number(produk.hargaBeli))}
+                    </span>
+                    {produk.tipe === 'BARANG' && (
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${produk.stok > 0 ? 'bg-slate-200 text-slate-600' : 'bg-red-100 text-red-600'}`}>
+                        Sisa: {produk.stok}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="w-full lg:w-[400px] flex flex-col bg-white rounded-[20px] shadow-sm border border-slate-200/80 overflow-hidden flex-shrink-0">
+        <div className="p-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
+          <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600">
+            <ShoppingCart size={20} />
+          </div>
+          <div>
+            <h2 className="font-bold text-slate-800">Keranjang Transaksi</h2>
+            <p className="text-xs text-slate-500 font-medium">{cart.length} Item dipilih</p>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar flex flex-col gap-4">
+          {cart.length === 0 ? (
+            <div className="m-auto text-center text-slate-400 text-sm">Keranjang kosong.<br />Pilih produk di sebelah kiri.</div>
+          ) : (
+            cart.map((item) => (
+              <div key={item.cartId} className="border border-slate-100 rounded-xl p-3 bg-white shadow-sm/50 relative">
+                <div className="flex justify-between items-start mb-2 pr-6">
+                  <h4 className="text-sm font-bold text-slate-800 leading-tight">{item.nama}</h4>
+                  <button onClick={() => handleRemoveFromCart(item.cartId)} className="absolute top-3 right-3 text-red-400 hover:text-red-600 transition-colors cursor-pointer">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between mt-3">
+                  <span className="text-sm font-bold text-slate-700">
+                    Rp {new Intl.NumberFormat('id-ID').format(tipeTransaksi === TransactionType.PEMASUKAN ? Number(item.hargaJual) : Number(item.hargaBeli))}
+                  </span>
+                  <div className="flex items-center gap-3 bg-slate-100 rounded-lg p-1">
+                    <button onClick={() => handleUpdateCart(item.cartId, 'kuantitas', Math.max(1, item.kuantitas - 1))} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-slate-600 hover:text-indigo-600 cursor-pointer">
+                      <Minus size={14} />
+                    </button>
+                    <span className="text-base font-black w-8 text-center text-slate-800">{item.kuantitas}</span>
+                    <button onClick={() => handleUpdateCart(item.cartId, 'kuantitas', item.kuantitas + 1)} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-slate-600 hover:text-indigo-600 cursor-pointer">
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-3 space-y-3 pt-3 border-t border-slate-50">
+                  {/* FITUR BARU: Preset Diskon Karyawan */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Voucher / Preset Diskon</label>
+                    <div className="flex flex-wrap gap-2 mb-1">
+                      <button
+                        onClick={() => {
+                          const harga = tipeTransaksi === TransactionType.PEMASUKAN ? Number(item.hargaJual) : Number(item.hargaBeli);
+                          handleUpdateCart(item.cartId, 'diskonInput', harga * item.kuantitas);
+                        }}
+                        className="text-[10px] px-2 py-1 bg-emerald-50 text-emerald-600 rounded-md font-bold hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                      >
+                        Karyawan (Free)
+                      </button>
+                      <button
+                        onClick={() => {
+                          const harga = tipeTransaksi === TransactionType.PEMASUKAN ? Number(item.hargaJual) : Number(item.hargaBeli);
+                          handleUpdateCart(item.cartId, 'diskonInput', (harga * item.kuantitas) * 0.5);
+                        }}
+                        className="text-[10px] px-2 py-1 bg-indigo-50 text-indigo-600 rounded-md font-bold hover:bg-indigo-100 transition-colors border border-indigo-200 cursor-pointer"
+                      >
+                        Diskon 50%
+                      </button>
+                      <button
+                        onClick={() => handleUpdateCart(item.cartId, 'diskonInput', 0)}
+                        className="text-[10px] px-2 py-1 bg-slate-100 text-slate-600 rounded-md font-bold hover:bg-slate-200 transition-colors border border-slate-200 cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                    </div>
+
+                    {/* Input Nominal Manual Tetap Ada */}
+                    <CurrencyInput
+                      label="Atau Nominal Manual (Rp)"
+                      name={`diskon-${item.cartId}`}
+                      value={item.diskonInput}
+                      onValueChange={(_, val) => handleUpdateCart(item.cartId, 'diskonInput', val)}
+                    />
+                  </div>
+
+                  {tipeTransaksi === TransactionType.PENGELUARAN && item.tipe === 'BARANG' && (
+                    <div className="flex flex-col gap-1.5 w-full">
+                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Expired Date (Opsional)</label>
+                      <input
+                        type="date"
+                        value={item.expiredAtInput || ''}
+                        onChange={(e) => handleUpdateCart(item.cartId, 'expiredAtInput', e.target.value)}
+                        className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="p-5 bg-slate-50 border-t border-slate-200 flex flex-col gap-4">
+          <div className="space-y-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Waktu Transaksi (Default: Saat ini)</label>
+              <div className="relative">
+                <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="datetime-local"
+                  value={waktuTransaksi}
+                  onChange={(e) => setWaktuTransaksi(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 outline-none focus:border-indigo-500 bg-white"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Foto Bukti (Nota/Transfer)</label>
+              <div className="relative">
+                <UploadCloud size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setFotoBukti(e.target.files?.[0] || null)}
+                  className="w-full pl-9 pr-3 py-1.5 text-sm rounded-xl border border-slate-200 bg-white file:hidden text-slate-600 cursor-pointer"
+                />
+              </div>
+              {fotoBukti && <span className="text-[10px] text-emerald-600 font-medium ml-1">File terpilih: {fotoBukti.name}</span>}
+            </div>
+          </div>
+          <div className="border-t border-slate-200 border-dashed pt-3">
+            <div className="flex justify-between items-center mb-1 text-sm">
+              <span className="text-slate-500 font-medium">Total Diskon</span>
+              <span className="text-rose-500 font-bold">- Rp {new Intl.NumberFormat('id-ID').format(cartSummary.totalDiskon)}</span>
+            </div>
+            <div className="flex justify-between items-end mt-2">
+              <span className="text-sm font-bold text-slate-600 uppercase tracking-wider">Total Bayar</span>
+              <span className="text-2xl font-black text-indigo-600">Rp {new Intl.NumberFormat('id-ID').format(cartSummary.subtotal)}</span>
+            </div>
+          </div>
+          <button
+            onClick={handleCheckout}
+            disabled={checkoutMutation.isPending || cart.length === 0}
+            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {checkoutMutation.isPending ? 'Memproses...' : `Proses Transaksi ${tipeTransaksi === TransactionType.PEMASUKAN ? 'Masuk' : 'Keluar'}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+export default Transaksi;
+</file>
+
+<file path="src/providers/QueryProvider.tsx">
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { useState, type ReactNode } from 'react';
+
+export const QueryProvider = ({ children }: { children: ReactNode }) => {
+
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 1000 * 60 * 5,
+            gcTime: 1000 * 60 * 15,
+            refetchOnWindowFocus: false,
+            retry: 1,
+          },
+        },
+      })
+  );
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+      <ReactQueryDevtools initialIsOpen={false} position="bottom" />
+    </QueryClientProvider>
+  );
+};
+</file>
+
+<file path="src/types/api_response.ts">
+export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+</file>
+
+<file path="src/types/common.ts">
+export interface FieldError {
+  field: string;
+  message: string;
+}
+
+export interface ActionResult<T = void> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  errors?: FieldError[];
+}
+</file>
+
+<file path="src/types/domain.ts">
+export const BusinessUnit = {
+  PADEL: "PADEL",
+  CAFE: "CAFE",
+} as const;
+export type BusinessUnit = (typeof BusinessUnit)[keyof typeof BusinessUnit];
+export const TransactionType = {
+  PEMASUKAN: "PEMASUKAN",
+  PENGELUARAN: "PENGELUARAN",
+} as const;
+export type TransactionType =
+  (typeof TransactionType)[keyof typeof TransactionType];
+export const ProductType = {
+  BARANG: "BARANG",
+  JASA: "JASA",
+} as const;
+export type ProductType = (typeof ProductType)[keyof typeof ProductType];
+export interface Kategori {
+  id: number;
+  nama: string;
+  businessUnit: BusinessUnit;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface Produk {
+  id: number;
+  kategoriId: number;
+  kategoriNama: string;
+  businessUnit: BusinessUnit;
+  nama: string;
+  tipe: ProductType;
+  stok: number;
+  hargaBeli: number;
+  hargaJual: number;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface DetailTransaksi {
+  id: number;
+  transaksiId: number;
+  produkId: number;
+  kuantitas: number;
+  hargaBeli: number;
+  hargaJual: number;
+  diskon: number;
+  subtotal: number;
+  expiredAt: string | null;
+  produk: {
+    nama: string;
+    tipe: ProductType;
+  };
+}
+export interface Transaksi {
+  id: number;
+  noTransaksi: string;
+  businessUnit: BusinessUnit;
+  tipe: TransactionType;
+  waktuTransaksi: string;
+  totalNominal: number;
+  totalDiskon: number;
+  fotoBuktiUrl: string | null;
+  userId: number;
+  user: {
+    username: string;
+  };
+  details: DetailTransaksi[];
+  createdAt: string;
+  updatedAt: string;
+}
+export interface DashboardSummary {
+  period: {
+    startDate: string;
+    endDate: string;
+  };
+  financial: {
+    pemasukan: number;
+    pengeluaran: number;
+    net: number;
+  };
+  inventory: Array<{
+    id: number;
+    nama: string;
+    tipe: ProductType;
+    sisaStok: number;
+    terjual: number;
+    masuk: number;
+  }>;
+  expiringProducts: Array<{
+    id: number;
+    expiredAt: string;
+    kuantitas: number;
+    produk: {
+      nama: string;
+      kategori: {
+        nama: string;
+      };
+    };
+  }>;
+}
+</file>
+
+<file path="src/utils/errorHandler.ts">
+import { isAxiosError } from "axios";
+import type { ActionResult } from "../types/common";
+
+export const handleApiError = (error: unknown): ActionResult => {
+  if (import.meta.env.DEV) {
+    console.error("API Request failed:", error);
+  }
+
+  if (isAxiosError(error)) {
+    return {
+      success: false,
+      message:
+        error.response?.data?.message ||
+        "Terjadi kesalahan pada server. Silakan coba lagi.",
+      errors: error.response?.data?.error,
+    };
+  }
+
+  return {
+    success: false,
+    message:
+      error instanceof Error
+        ? error.message
+        : "Terjadi kesalahan tidak terduga.",
+  };
+};
+</file>
+
+<file path="src/utils/formatters.ts">
+export const formatDate = (dateString: string): string => {
+  if (!dateString) return "-";
+
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+};
+</file>
+
+<file path="src/utils/storage.ts">
+export const storage = {};
+</file>
+
+<file path="tsconfig.json">
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
+</file>
+
+<file path="vite.config.ts">
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
+import tailwindcss from "@tailwindcss/vite";
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+});
+</file>
+
+</files>

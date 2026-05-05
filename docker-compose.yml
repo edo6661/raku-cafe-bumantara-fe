@@ -1,0 +1,11 @@
+services:
+  assesment-wpp-web:
+    build: .
+    container_name: assesment-wpp-web
+    restart: unless-stopped
+    networks:
+      - proxy-network
+# test trigger ci 5
+networks:
+  proxy-network:
+    external: true
