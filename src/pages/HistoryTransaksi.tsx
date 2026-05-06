@@ -64,37 +64,30 @@ const HistoryTransaksi = () => {
 
   const columns: Column<HistoryTableItem>[] = [
     {
-      header: 'No. Transaksi',
-      accessor: 'noTransaksi',
-      render: (val, row) => (
-        <div>
-          <div className="font-black text-slate-800">{String(val)}</div>
-          <div className="text-[11px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
-            Oleh: <span className="font-bold text-slate-700">{row.user.username}</span>
-          </div>
-        </div>
-      )
-    },
-    {
       header: 'Kategori',
       accessor: 'tipe',
       render: (_, row) => (
         <div className="flex flex-col gap-1.5 items-start">
-          <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${row.tipe === TransactionType.PEMASUKAN ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-            }`}>
+          <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${row.tipe === TransactionType.PEMASUKAN ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
             {row.tipe}
           </span>
-          <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${row.businessUnit === BusinessUnit.PADEL ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-orange-50 text-orange-600 border border-orange-100'
-            }`}>
+          <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${row.businessUnit === BusinessUnit.PADEL ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
             {row.businessUnit}
           </span>
         </div>
       )
     },
     {
-      header: 'Waktu',
+      header: 'Waktu / Kasir',
       accessor: 'waktuTransaksi',
-      render: (val) => <span className="text-sm font-medium text-slate-600">{formatDate(String(val))}</span>
+      render: (val, row) => (
+        <div>
+          <div className="text-sm font-medium text-slate-600">{formatDate(String(val))}</div>
+          <div className="text-[11px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+            Oleh: <span className="font-bold text-slate-700">{row.user.username}</span>
+          </div>
+        </div>
+      )
     },
     {
       header: 'Total Nominal',
@@ -114,17 +107,17 @@ const HistoryTransaksi = () => {
       header: 'Bukti',
       accessor: 'fotoBuktiUrl',
       render: (val) => val ? (
-        <button
+        <img
+          src={String(val)}
+          alt="Bukti Transaksi"
           onClick={(e) => {
             e.stopPropagation();
             setSelectedPhotoUrl(String(val));
             setIsPhotoModalOpen(true);
           }}
-          className="p-1.5 bg-slate-100 hover:bg-indigo-100 text-slate-500 hover:text-indigo-600 rounded-lg transition-colors cursor-pointer"
+          className="w-10 h-10 object-cover rounded-lg border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
           title="Lihat Bukti"
-        >
-          <Receipt size={18} />
-        </button>
+        />
       ) : <span className="text-[11px] text-slate-400 italic">Tidak ada</span>
     }
   ];

@@ -8,7 +8,6 @@ import {
   Package,
   ArrowUpRight,
   ArrowDownRight,
-  Filter,
   BarChart3
 } from 'lucide-react';
 import {
@@ -20,14 +19,21 @@ import { BusinessUnit, type DashboardSummary } from '../types/domain';
 import { formatDate } from '../utils/formatters';
 
 const Dashboard = () => {
-  const [filterPeriod, setFilterPeriod] = useState<string>('monthly');
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  const defaultStart = startOfMonth.toISOString().split('T')[0];
+  const defaultEnd = new Date().toISOString().split('T')[0];
+
+  const [startDate, setStartDate] = useState<string>(defaultStart);
+  const [endDate, setEndDate] = useState<string>(defaultEnd);
   const [filterUnit, setFilterUnit] = useState<BusinessUnit | ''>('');
 
   const { data: dashboardData, isLoading, isError } = useQuery({
-    queryKey: ['dashboard-summary', filterPeriod, filterUnit],
+    queryKey: ['dashboard-summary', startDate, endDate, filterUnit],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (filterPeriod) params.append('filter', filterPeriod);
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
       if (filterUnit) params.append('businessUnit', filterUnit);
 
       const response = await api.get<{ data: DashboardSummary }>(`/dashboard/summary?${params.toString()}`);
@@ -102,18 +108,20 @@ const Dashboard = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl">
-            <Filter size={16} className="text-slate-400" />
-            <select
-              value={filterPeriod}
-              onChange={(e) => setFilterPeriod(e.target.value)}
-              className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer"
-            >
-              <option value="daily">Hari Ini</option>
-              <option value="weekly">Minggu Ini</option>
-              <option value="monthly">Bulan Ini</option>
-              <option value="yearly">Tahun Ini</option>
-            </select>
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-1.5 rounded-xl shadow-sm">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="bg-white text-xs font-bold text-slate-700 outline-none px-2 py-1 rounded-md border border-slate-200"
+            />
+            <span className="text-slate-400 font-bold text-xs">-</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="bg-white text-xs font-bold text-slate-700 outline-none px-2 py-1 rounded-md border border-slate-200"
+            />
           </div>
 
           <div className="flex bg-slate-100 p-1 rounded-xl">
@@ -143,7 +151,7 @@ const Dashboard = () => {
       </div>
 
       {/* FINANCIAL CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white p-6 rounded-[20px] shadow-sm border border-slate-200/80 flex flex-col justify-between relative overflow-hidden group">
           <div className="absolute right-[-10%] top-[-10%] w-24 h-24 bg-emerald-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
           <div className="relative z-10 flex justify-between items-start mb-4">
@@ -170,20 +178,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-slate-900 p-6 rounded-[20px] shadow-lg border border-slate-800 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500/20 blur-2xl rounded-full"></div>
-          <div className="relative z-10 flex justify-between items-start mb-4">
-            <div>
-              <p className="text-sm font-bold text-indigo-200 uppercase tracking-wider mb-1">Laba Bersih (Net Profit)</p>
-              <h3 className={`text-2xl font-black ${financial.net >= 0 ? 'text-white' : 'text-rose-400'}`}>
-                {formatCurrency(financial.net)}
-              </h3>
-            </div>
-            <div className="w-12 h-12 bg-indigo-500/30 text-indigo-300 rounded-2xl flex items-center justify-center shrink-0">
-              <Wallet size={24} strokeWidth={2.5} />
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* CHARTS SECTION */}

@@ -184,11 +184,7 @@ const Kategori = () => {
         </span>
       )
     },
-    {
-      header: 'Dibuat Pada',
-      accessor: 'createdAt',
-      render: (val) => <span className="text-slate-500">{formatDate(String(val))}</span>
-    },
+
   ];
 
   return (

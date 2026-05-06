@@ -19,11 +19,7 @@ interface PaginatedResponse<T> {
   meta: { nextCursor: number | null; hasNextPage: boolean };
 }
 
-const isWeekend = (dateStr: string) => {
-  const date = dateStr ? new Date(dateStr) : new Date();
-  const day = date.getDay();
-  return day === 0 || day === 6;
-};
+
 
 const Transaksi = () => {
   const queryClient = useQueryClient();
@@ -108,26 +104,10 @@ const Transaksi = () => {
           alert('Mencapai batas maksimal stok yang tersedia!');
           return prev;
         }
-        const isWknd = isWeekend(waktuTransaksi);
-        return prev.map((item) => {
-          if (item.id === produk.id) {
-            let updatedHargaJual = item.hargaJual;
-            if (item.tipe === 'JASA' && item.originalHargaJual && item.hargaJualWeekend) {
-              updatedHargaJual = isWknd ? item.hargaJualWeekend : item.originalHargaJual;
-            }
-            return { ...item, kuantitas: item.kuantitas + 1, hargaJual: updatedHargaJual };
-          }
-          return item;
-        });
-      }
-      const isWknd = isWeekend(waktuTransaksi);
-      let appliedHargaJual = produk.hargaJual;
-      if (tipeTransaksi === TransactionType.PEMASUKAN && produk.tipe === 'JASA' && produk.hargaJualWeekend && isWknd) {
-        appliedHargaJual = produk.hargaJualWeekend;
+        return prev.map((item) => item.id === produk.id ? { ...item, kuantitas: item.kuantitas + 1 } : item);
       }
       return [...prev, {
         ...produk,
-        hargaJual: appliedHargaJual,
         originalHargaJual: produk.hargaJual,
         cartId: Math.random().toString(36).substr(2, 9),
         kuantitas: 1,
@@ -136,6 +116,8 @@ const Transaksi = () => {
     });
   };
 
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleUpdateCart = (cartId: string, field: keyof CartItem, value: any) => {
     setCart((prev) =>
       prev.map((item) => {
@@ -179,12 +161,10 @@ const Transaksi = () => {
   };
 
   return (
-    // Menghapus h-[calc] yang baku, diganti dengan min-h untuk mobile dan max-h untuk desktop
+
     <div className="flex flex-col xl:flex-row gap-6 h-full xl:max-h-[calc(100vh-7rem)]">
 
-      {/* PANEL KIRI: KATALOG PRODUK */}
       <div className="flex-1 flex flex-col bg-white rounded-[24px] shadow-sm border border-slate-200/80 overflow-hidden min-h-[500px]">
-        {/* Header Filter Pos */}
         <div className="p-4 md:p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between gap-4 bg-slate-50/30">
           <div className="flex bg-slate-100 p-1.5 rounded-xl w-max border border-slate-200/60">
             {(Object.values(BusinessUnit) as BusinessUnit[]).map((unit) => (
@@ -217,7 +197,6 @@ const Transaksi = () => {
           </div>
         </div>
 
-        {/* List Produk */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar bg-slate-50/50">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-3">
@@ -237,7 +216,6 @@ const Transaksi = () => {
                   onClick={() => handleAddToCart(produk)}
                   className="group relative border border-slate-200 rounded-2xl p-4 bg-white text-left hover:border-indigo-400 hover:shadow-lg hover:shadow-indigo-600/10 hover:-translate-y-1 transition-all active:scale-95 cursor-pointer flex flex-col justify-between h-36 overflow-hidden"
                 >
-                  {/* Decorative background circle on hover */}
                   <div className="absolute -right-6 -top-6 w-20 h-20 bg-indigo-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
                   <div className="relative z-10">
@@ -247,9 +225,7 @@ const Transaksi = () => {
 
                   <div className="relative z-10 flex justify-between items-end mt-2">
                     <span className="text-indigo-600 font-black text-sm md:text-base">
-                      Rp {new Intl.NumberFormat('id-ID').format(tipeTransaksi === TransactionType.PEMASUKAN ?
-                        (isWeekend(waktuTransaksi) && produk.tipe === 'JASA' && produk.hargaJualWeekend ? Number(produk.hargaJualWeekend) : Number(produk.hargaJual))
-                        : Number(produk.hargaBeli))}
+                      Rp {new Intl.NumberFormat('id-ID').format(tipeTransaksi === TransactionType.PEMASUKAN ? Number(produk.hargaJual) : Number(produk.hargaBeli))}
                     </span>
                     {produk.tipe === 'BARANG' && (
                       <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${produk.stok > 0 ? 'bg-slate-100 text-slate-600' : 'bg-red-100 text-red-600'}`}>
@@ -264,7 +240,6 @@ const Transaksi = () => {
         </div>
       </div>
 
-      {/* PANEL KANAN: KERANJANG TRANSAKSI */}
       <div className="w-full xl:w-[420px] flex flex-col bg-white rounded-[24px] shadow-sm border border-slate-200/80 overflow-hidden flex-shrink-0 lg:sticky lg:top-0">
         <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-3">
@@ -328,24 +303,28 @@ const Transaksi = () => {
                   </div>
                 </div>
 
-                {/* Bagian Diskon (Khusus Penjualan) */}
                 {tipeTransaksi === TransactionType.PEMASUKAN && (
                   <div className="mt-3 pt-3 border-t border-slate-100 border-dashed">
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Opsi Diskon (Pilih Salah Satu)</label>
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {voucherData?.map((voucher) => (
-                        <button
-                          key={voucher.id}
-                          onClick={() => {
-                            const harga = Number(item.hargaJual);
-                            const diskonPersen = Number(voucher.persentase) / 100;
-                            handleUpdateCart(item.cartId, 'diskonInput', (harga * item.kuantitas) * diskonPersen);
-                          }}
-                          className="text-[11px] px-3 py-1.5 bg-white text-indigo-600 rounded-lg font-bold hover:bg-indigo-50 hover:border-indigo-300 transition-colors border border-indigo-200 cursor-pointer shadow-sm"
-                        >
-                          {voucher.nama} ({voucher.persentase}%)
-                        </button>
-                      ))}
+                      {voucherData?.map((voucher) => {
+                        const harga = Number(item.hargaJual);
+                        const diskonTerhitung = (harga * item.kuantitas) * (Number(voucher.persentase) / 100);
+                        const isSelected = item.diskonInput === diskonTerhitung && item.diskonInput > 0;
+
+                        return (
+                          <button
+                            key={voucher.id}
+                            onClick={() => handleUpdateCart(item.cartId, 'diskonInput', diskonTerhitung)}
+                            className={`text-[11px] px-3 py-1.5 rounded-lg font-bold transition-colors cursor-pointer border shadow-sm ${isSelected
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20'
+                              : 'bg-white text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 border-indigo-200'
+                              }`}
+                          >
+                            {voucher.nama} ({voucher.persentase}%)
+                          </button>
+                        );
+                      })}
                       <button
                         onClick={() => handleUpdateCart(item.cartId, 'diskonInput', 0)}
                         className="text-[11px] px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg font-bold hover:bg-slate-200 transition-colors border border-slate-200 cursor-pointer"
@@ -363,7 +342,6 @@ const Transaksi = () => {
                   </div>
                 )}
 
-                {/* Bagian Tanggal Kadaluarsa (Khusus Pembelian) */}
                 {tipeTransaksi === TransactionType.PENGELUARAN && item.tipe === 'BARANG' && (
                   <div className="mt-3 flex flex-col gap-1.5 w-full bg-orange-50/50 p-3 rounded-xl border border-orange-100">
                     <label className="text-[10px] font-bold text-orange-700 uppercase tracking-wider">Expired Date (Wajib untuk Stok)</label>
@@ -380,7 +358,6 @@ const Transaksi = () => {
           )}
         </div>
 
-        {/* SUMMARY & CHECKOUT BUTTON */}
         <div className="p-5 bg-slate-50 border-t border-slate-200 flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">

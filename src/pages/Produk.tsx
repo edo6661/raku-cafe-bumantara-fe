@@ -25,7 +25,6 @@ interface ProdukFormPayload {
   stok: number;
   hargaBeli: number;
   hargaJual: number;
-  hargaJualWeekend: number;
 }
 
 const initialFormState: ProdukFormPayload = {
@@ -35,7 +34,6 @@ const initialFormState: ProdukFormPayload = {
   stok: 0,
   hargaBeli: 0,
   hargaJual: 0,
-  hargaJualWeekend: 0,
 };
 
 type ProdukTableItem = ProdukType & Record<string, unknown>;
@@ -51,6 +49,7 @@ const Produk = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState<ProdukFormPayload>(initialFormState);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof ProdukFormPayload, string>>>({});
+  const [stockErrors, setStockErrors] = useState<Partial<Record<'jumlahPenyesuaian' | 'keterangan', string>>>({});
 
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [selectedProdukId, setSelectedProdukId] = useState<number | null>(null);
@@ -123,11 +122,12 @@ const Produk = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
       handleCloseStockModal();
     },
-    onError: (error) => alert(handleApiError(error).message)
+    onError: (error) => applyApiErrors(error, setStockErrors)
   });
-
   const handleSearch = (val: string) => {
     setSearchTerm(val);
     setCursorHistory([undefined]);
@@ -152,7 +152,6 @@ const Produk = () => {
         stok: produk.stok,
         hargaBeli: produk.hargaBeli,
         hargaJual: produk.hargaJual,
-        hargaJualWeekend: produk.hargaJualWeekend ?? 0,
       });
     } else {
       setEditingId(null);
@@ -179,8 +178,8 @@ const Produk = () => {
     setSelectedProdukId(null);
     setStockAdjustment({ jumlahPenyesuaian: 0, keterangan: '' });
     setFotoOpname(null);
+    setStockErrors({});
   };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     setFormData((prev) => ({
@@ -205,6 +204,7 @@ const Produk = () => {
     if (editingId) {
       updateMutation.mutate({ id: editingId, payload: formData });
     } else {
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       createMutation.mutate(formData as any);
     }
@@ -291,14 +291,7 @@ const Produk = () => {
           />
           <CurrencyInput label="Harga Beli / Modal" name="hargaBeli" value={formData.hargaBeli} onValueChange={handleCurrencyChange} />
           <CurrencyInput label="Harga Jual" name="hargaJual" value={formData.hargaJual} onValueChange={handleCurrencyChange} />
-          {formData.tipe === ProductType.JASA && (
-            <CurrencyInput
-              label="Harga Jual Weekend"
-              name="hargaJualWeekend"
-              value={formData.hargaJualWeekend || 0}
-              onValueChange={handleCurrencyChange}
-            />
-          )}
+
         </div>
         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
           <button onClick={handleCloseModal} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">Batal</button>
@@ -312,18 +305,25 @@ const Produk = () => {
             <strong>Catatan:</strong> Gunakan nilai minus (-) untuk mengurangi stok (barang rusak/kadaluarsa), dan positif (+) untuk menambah stok (koreksi).
           </div>
           <Input
-            label="Jumlah Penyesuaian" type="number"
+            label="Jumlah Penyesuaian"
+            type="number"
             value={stockAdjustment.jumlahPenyesuaian}
+            error={stockErrors.jumlahPenyesuaian}
             onChange={(e) => {
               const val = e.target.value;
               setStockAdjustment(p => ({ ...p, jumlahPenyesuaian: val === '' ? '' : Number(val) }));
+              if (stockErrors.jumlahPenyesuaian) setStockErrors(p => ({ ...p, jumlahPenyesuaian: undefined }));
             }}
           />
           <Input
             label="Keterangan Audit"
             placeholder="Contoh: Barang rusak, koreksi perhitungan..."
             value={stockAdjustment.keterangan}
-            onChange={(e) => setStockAdjustment(p => ({ ...p, keterangan: e.target.value }))}
+            error={stockErrors.keterangan}
+            onChange={(e) => {
+              setStockAdjustment(p => ({ ...p, keterangan: e.target.value }));
+              if (stockErrors.keterangan) setStockErrors(p => ({ ...p, keterangan: undefined }));
+            }}
           />
 
           <FileInput

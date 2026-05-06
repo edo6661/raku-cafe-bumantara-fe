@@ -77,12 +77,19 @@ const AuditLogPage = () => {
     {
       header: 'Modul (Entity)',
       accessor: 'entityName',
-      render: (val, row) => (
-        <div>
-          <span className="font-bold text-slate-700">{String(val)}</span>
-          <span className="ml-2 text-[11px] text-slate-400">ID: {row.entityId}</span>
-        </div>
-      )
+      render: (val, row) => {
+        const entity = String(val);
+        const isOpname = entity === 'PRODUK_STOK_OPNAME';
+
+        return (
+          <div>
+            <span className={`font-bold ${isOpname ? 'text-orange-600 bg-orange-50 px-2 py-0.5 rounded' : 'text-slate-700'}`}>
+              {isOpname ? '📦 STOK OPNAME' : entity}
+            </span>
+            <span className="ml-2 text-[11px] text-slate-400">ID: {row.entityId}</span>
+          </div>
+        );
+      }
     }
   ];
 

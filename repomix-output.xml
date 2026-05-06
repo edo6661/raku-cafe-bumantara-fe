@@ -412,35 +412,6 @@ export interface ActionResult<T = void> {
 }
 </file>
 
-<file path="src/utils/errorHandler.ts">
-import { isAxiosError } from "axios";
-import type { ActionResult } from "../types/common";
-
-export const handleApiError = (error: unknown): ActionResult => {
-  if (import.meta.env.DEV) {
-    console.error("API Request failed:", error);
-  }
-
-  if (isAxiosError(error)) {
-    return {
-      success: false,
-      message:
-        error.response?.data?.message ||
-        "Terjadi kesalahan pada server. Silakan coba lagi.",
-      errors: error.response?.data?.error,
-    };
-  }
-
-  return {
-    success: false,
-    message:
-      error instanceof Error
-        ? error.message
-        : "Terjadi kesalahan tidak terduga.",
-  };
-};
-</file>
-
 <file path="src/utils/formatters.ts">
 export const formatDate = (dateString: string): string => {
   if (!dateString) return "-";
@@ -1071,389 +1042,6 @@ const HistoryTransaksi = () => {
 export default HistoryTransaksi;
 </file>
 
-<file path="src/pages/Kategori.tsx">
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../lib/axios';
-import DataTable, { type Column } from '../components/shared/DataTable';
-import Modal from '../components/shared/Modal';
-import Input from '../components/shared/Input';
-import Select from '../components/shared/Select';
-import { handleApiError } from '../utils/errorHandler';
-import { formatDate } from '../utils/formatters';
-import { BusinessUnit, type Kategori as KategoriType } from '../types/domain';
-
-
-interface PaginatedResponse<T> {
-  items: T[];
-  meta: {
-    nextCursor: number | null;
-    hasNextPage: boolean;
-  };
-}
-
-
-interface KategoriFormPayload {
-  nama: string;
-  businessUnit: BusinessUnit | '';
-}
-type KategoriTableItem = KategoriType & Record<string, unknown>;
-
-const initialFormState: KategoriFormPayload = {
-  nama: '',
-  businessUnit: '',
-};
-
-const Kategori = () => {
-  const queryClient = useQueryClient();
-
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-
-
-  const [cursorHistory, setCursorHistory] = useState<(number | undefined)[]>([undefined]);
-  const currentCursor = cursorHistory[cursorHistory.length - 1];
-
-
-  const [formData, setFormData] = useState<KategoriFormPayload>(initialFormState);
-  const [formErrors, setFormErrors] = useState<Partial<Record<keyof KategoriFormPayload, string>>>({});
-
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['categories', searchTerm, currentCursor],
-    queryFn: async () => {
-      const params = new URLSearchParams({ limit: '10' });
-      if (searchTerm) params.append('search', searchTerm);
-      if (currentCursor) params.append('cursor', currentCursor.toString());
-
-      const response = await api.get<{ data: PaginatedResponse<KategoriType> }>(`/categories?${params.toString()}`);
-      return response.data.data;
-    },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (payload: KategoriFormPayload) => {
-      await api.post('/categories', payload);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      queryClient.invalidateQueries({ queryKey: ['categories-all'] });
-      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
-      handleCloseModal();
-    },
-    onError: (error) => {
-      const result = handleApiError(error);
-      alert(result.message);
-    }
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: number; payload: Partial<KategoriFormPayload> }) => {
-      await api.patch(`/categories/${id}`, payload);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      handleCloseModal();
-    },
-    onError: (error) => {
-      const result = handleApiError(error);
-      alert(result.message);
-    }
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await api.delete(`/categories/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-    },
-    onError: (error) => {
-      const result = handleApiError(error);
-      alert(result.message);
-    }
-  });
-
-
-  const handleSearch = (val: string) => {
-    setSearchTerm(val);
-    setCursorHistory([undefined]);
-  };
-
-  const handleNextPage = () => {
-    if (data?.meta.hasNextPage && data.meta.nextCursor) {
-      setCursorHistory((prev) => [...prev, data.meta.nextCursor as number]);
-    }
-  };
-
-  const handlePrevPage = () => {
-    setCursorHistory((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
-  };
-
-  const handleOpenModal = (kategori?: KategoriType) => {
-    setFormErrors({});
-    if (kategori) {
-      setEditingId(kategori.id);
-      setFormData({
-        nama: kategori.nama,
-        businessUnit: kategori.businessUnit,
-      });
-    } else {
-      setEditingId(null);
-      setFormData(initialFormState);
-    }
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingId(null);
-    setFormData(initialFormState);
-    setFormErrors({});
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (formErrors[name as keyof KategoriFormPayload]) {
-      setFormErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const validateForm = () => {
-    const errors: Partial<Record<keyof KategoriFormPayload, string>> = {};
-    if (!formData.nama || formData.nama.length < 3) {
-      errors.nama = 'Nama kategori minimal 3 karakter';
-    }
-    if (!formData.businessUnit) {
-      errors.businessUnit = 'Business Unit wajib dipilih';
-    }
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSubmit = () => {
-    if (!validateForm()) return;
-
-    if (editingId) {
-      updateMutation.mutate({ id: editingId, payload: formData });
-    } else {
-      createMutation.mutate(formData as KategoriFormPayload);
-    }
-  };
-
-  const handleDelete = (kategori: KategoriType) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus kategori "${kategori.nama}"?`)) {
-      deleteMutation.mutate(kategori.id);
-    }
-  };
-
-
-  const columns: Column<KategoriType>[] = [
-    { header: 'Nama Kategori', accessor: 'nama' },
-    {
-      header: 'Business Unit',
-      accessor: 'businessUnit',
-      render: (val) => (
-        <span className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-wider ${val === BusinessUnit.PADEL
-          ? 'bg-blue-50 text-blue-600 border border-blue-200'
-          : 'bg-orange-50 text-orange-600 border border-orange-200'
-          }`}>
-          {String(val)}
-        </span>
-      )
-    },
-    {
-      header: 'Dibuat Pada',
-      accessor: 'createdAt',
-      render: (val) => <span className="text-slate-500">{formatDate(String(val))}</span>
-    },
-  ];
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Kategori</h1>
-        <p className="text-sm text-slate-500">Kelola kategori produk untuk Padel dan Cafe.</p>
-      </div>
-
-      <DataTable<KategoriTableItem>
-        title="Daftar Kategori"
-        columns={columns}
-        data={(data?.items as KategoriTableItem[]) || []}
-        isLoading={isLoading}
-        serverSide={true}
-        searchTerm={searchTerm}
-        onSearchChange={handleSearch}
-        onAdd={() => handleOpenModal()}
-        onEdit={handleOpenModal}
-        onDelete={handleDelete}
-        hasNextPage={data?.meta.hasNextPage}
-        hasPrevPage={cursorHistory.length > 1}
-        onNextPage={handleNextPage}
-        onPrevPage={handlePrevPage}
-      />
-
-      <Modal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        title={editingId ? 'Edit Kategori' : 'Tambah Kategori Baru'}
-      >
-        <div className="flex flex-col gap-4">
-          <Input
-            label="Nama Kategori"
-            name="nama"
-            placeholder="Masukkan nama kategori..."
-            value={formData.nama}
-            onChange={handleChange}
-            error={formErrors.nama}
-            disabled={createMutation.isPending || updateMutation.isPending}
-          />
-          <Select
-            label="Business Unit"
-            name="businessUnit"
-            value={formData.businessUnit}
-            onChange={handleChange}
-            error={formErrors.businessUnit}
-            disabled={createMutation.isPending || updateMutation.isPending}
-            options={[
-              { value: BusinessUnit.PADEL, label: 'Padel' },
-              { value: BusinessUnit.CAFE, label: 'Cafe' },
-            ]}
-          />
-
-          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-100">
-            <button
-              onClick={handleCloseModal}
-              className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-              disabled={createMutation.isPending || updateMutation.isPending}
-            >
-              Batal
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
-              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
-            </button>
-          </div>
-        </div>
-      </Modal>
-    </div>
-  );
-};
-
-export default Kategori;
-</file>
-
-<file path="src/pages/Login.tsx">
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
-import api from '../lib/axios';
-import Input from '../components/shared/Input';
-import { handleApiError } from '../utils/errorHandler';
-import { Package } from 'lucide-react';
-
-const Login = () => {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({ email: '', password: '' });
-
-  const loginMutation = useMutation({
-    mutationFn: async (payload: typeof formData) => {
-      const response = await api.post('/auth/login', payload);
-      return response.data.data;
-    },
-    onSuccess: (data) => {
-
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      navigate('/', { replace: true });
-    },
-    onError: (error) => {
-      const result = handleApiError(error);
-      alert(result.message);
-    }
-  });
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.email || !formData.password) {
-      return alert('Email dan password wajib diisi');
-    }
-    loginMutation.mutate(formData);
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background Decor */}
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-500/10 blur-3xl rounded-full"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-emerald-500/10 blur-3xl rounded-full"></div>
-
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <div className="flex justify-center">
-          <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-600/20">
-            <Package size={32} />
-          </div>
-        </div>
-        <h2 className="mt-6 text-center text-3xl font-black text-slate-900 tracking-tight">
-          Login ke Raku
-        </h2>
-        <p className="mt-2 text-center text-sm text-slate-500 font-medium">
-          Sistem ERP Point of Sale & Inventory
-        </p>
-      </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <div className="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-[24px] sm:px-10 border border-slate-100">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <Input
-              label="Email Address"
-              name="email"
-              type="email"
-              placeholder="admin@gmail.com"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-
-            <Input
-              label="Password"
-              name="password"
-              type="password"
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
-
-            <div>
-              <button
-                type="submit"
-                disabled={loginMutation.isPending}
-                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] cursor-pointer"
-              >
-                {loginMutation.isPending ? 'Memverifikasi...' : 'Masuk Sistem'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Login;
-</file>
-
 <file path="src/pages/PageLoader.tsx">
 import { Package } from 'lucide-react';
 
@@ -1474,289 +1062,6 @@ const PageLoader = () => {
 };
 
 export default PageLoader;
-</file>
-
-<file path="src/pages/Voucher.tsx">
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../lib/axios';
-import DataTable, { type Column } from '../components/shared/DataTable';
-import Modal from '../components/shared/Modal';
-import Input from '../components/shared/Input';
-import Select from '../components/shared/Select';
-import { handleApiError } from '../utils/errorHandler';
-import { formatDate } from '../utils/formatters';
-import type { Voucher } from '../types/domain';
-
-interface PaginatedResponse<T> {
-  items: T[];
-  meta: {
-    nextCursor: number | null;
-    hasNextPage: boolean;
-  };
-}
-
-type VoucherTableItem = Voucher & Record<string, unknown>;
-
-interface VoucherFormPayload {
-  nama: string;
-  persentase: number | '';
-  isActive: string;
-}
-
-const initialFormState: VoucherFormPayload = {
-  nama: '',
-  persentase: '',
-  isActive: 'true',
-};
-
-const VoucherPage = () => {
-  const queryClient = useQueryClient();
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [cursorHistory, setCursorHistory] = useState<(number | undefined)[]>([undefined]);
-  const currentCursor = cursorHistory[cursorHistory.length - 1];
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState<VoucherFormPayload>(initialFormState);
-  const [formErrors, setFormErrors] = useState<Partial<Record<keyof VoucherFormPayload, string>>>({});
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['vouchers', searchTerm, currentCursor],
-    queryFn: async () => {
-      const params = new URLSearchParams({ limit: '10' });
-      if (searchTerm) params.append('search', searchTerm);
-      if (currentCursor) params.append('cursor', currentCursor.toString());
-
-      const response = await api.get<{ data: PaginatedResponse<Voucher> }>(`/vouchers?${params.toString()}`);
-      return response.data.data;
-    },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (payload: { nama: string; persentase: number; isActive: boolean }) => {
-      await api.post('/vouchers', payload);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vouchers'] });
-      queryClient.invalidateQueries({ queryKey: ['vouchers-active'] });
-      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
-      handleCloseModal();
-    },
-    onError: (error) => alert(handleApiError(error).message),
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: number; payload: Partial<{ nama: string; persentase: number; isActive: boolean }> }) => {
-      await api.patch(`/vouchers/${id}`, payload);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vouchers'] });
-      handleCloseModal();
-    },
-    onError: (error) => alert(handleApiError(error).message),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await api.delete(`/vouchers/${id}`);
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vouchers'] }),
-    onError: (error) => alert(handleApiError(error).message),
-  });
-
-  const handleSearch = (val: string) => {
-    setSearchTerm(val);
-    setCursorHistory([undefined]);
-  };
-
-  const handleNextPage = () => {
-    if (data?.meta.hasNextPage && data.meta.nextCursor) {
-      setCursorHistory((prev) => [...prev, data.meta.nextCursor as number]);
-    }
-  };
-
-  const handlePrevPage = () => {
-    setCursorHistory((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
-  };
-
-  const handleOpenModal = (voucher?: Voucher) => {
-    setFormErrors({});
-    if (voucher) {
-      setEditingId(voucher.id);
-      setFormData({
-        nama: voucher.nama,
-        persentase: voucher.persentase,
-        isActive: voucher.isActive ? 'true' : 'false',
-      });
-    } else {
-      setEditingId(null);
-      setFormData(initialFormState);
-    }
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingId(null);
-    setFormData(initialFormState);
-    setFormErrors({});
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'number' ? (value === '' ? '' : Number(value)) : value,
-    }));
-    if (formErrors[name as keyof VoucherFormPayload]) {
-      setFormErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const validateForm = () => {
-    const errors: Partial<Record<keyof VoucherFormPayload, string>> = {};
-    if (!formData.nama || formData.nama.length < 3) {
-      errors.nama = 'Nama voucher minimal 3 karakter';
-    }
-    if (formData.persentase === '' || formData.persentase < 0 || formData.persentase > 100) {
-      errors.persentase = 'Persentase harus antara 0 dan 100';
-    }
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSubmit = () => {
-    if (!validateForm()) return;
-
-    const payload = {
-      nama: formData.nama,
-      persentase: Number(formData.persentase),
-      isActive: formData.isActive === 'true',
-    };
-
-    if (editingId) {
-      updateMutation.mutate({ id: editingId, payload });
-    } else {
-      createMutation.mutate(payload);
-    }
-  };
-
-  const handleDelete = (voucher: Voucher) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus voucher "${voucher.nama}"?`)) {
-      deleteMutation.mutate(voucher.id);
-    }
-  };
-
-  const columns: Column<VoucherTableItem>[] = [
-    { header: 'Nama Voucher', accessor: 'nama', render: (val) => <span className="font-bold text-slate-800">{String(val)}</span> },
-    {
-      header: 'Persentase Diskon',
-      accessor: 'persentase',
-      render: (val) => <span className="font-bold text-indigo-600">{Number(val)}%</span>
-    },
-    {
-      header: 'Status',
-      accessor: 'isActive',
-      render: (val) => (
-        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider ${val ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-          }`}>
-          {val ? 'AKTIF' : 'NONAKTIF'}
-        </span>
-      )
-    },
-    {
-      header: 'Dibuat Pada',
-      accessor: 'createdAt',
-      render: (val) => <span className="text-slate-500">{formatDate(String(val))}</span>
-    },
-  ];
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Voucher & Diskon</h1>
-        <p className="text-sm text-slate-500">Kelola master data voucher dan preset diskon untuk kasir.</p>
-      </div>
-
-      <DataTable<VoucherTableItem>
-        title="Daftar Voucher"
-        columns={columns}
-        data={(data?.items as VoucherTableItem[]) || []}
-        isLoading={isLoading}
-        serverSide={true}
-        searchTerm={searchTerm}
-        onSearchChange={handleSearch}
-        onAdd={() => handleOpenModal()}
-        onEdit={(row) => handleOpenModal(row as Voucher)}
-        onDelete={(row) => handleDelete(row as Voucher)}
-        hasNextPage={data?.meta.hasNextPage}
-        hasPrevPage={cursorHistory.length > 1}
-        onNextPage={handleNextPage}
-        onPrevPage={handlePrevPage}
-      />
-
-      <Modal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        title={editingId ? 'Edit Voucher' : 'Tambah Voucher Baru'}
-      >
-        <div className="flex flex-col gap-4">
-          <Input
-            label="Nama Voucher"
-            name="nama"
-            placeholder="Contoh: Karyawan, Driver, Promo Kemerdekaan..."
-            value={formData.nama}
-            onChange={handleChange}
-            error={formErrors.nama}
-            disabled={createMutation.isPending || updateMutation.isPending}
-          />
-          <Input
-            label="Persentase Diskon (%)"
-            name="persentase"
-            type="number"
-            placeholder="Contoh: 40, 20, 10..."
-            value={formData.persentase}
-            onChange={handleChange}
-            error={formErrors.persentase}
-            disabled={createMutation.isPending || updateMutation.isPending}
-          />
-          <Select
-            label="Status Voucher"
-            name="isActive"
-            value={formData.isActive}
-            onChange={handleChange}
-            disabled={createMutation.isPending || updateMutation.isPending}
-            options={[
-              { value: 'true', label: 'Aktif' },
-              { value: 'false', label: 'Nonaktif' },
-            ]}
-          />
-
-          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-100">
-            <button
-              onClick={handleCloseModal}
-              className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-              disabled={createMutation.isPending || updateMutation.isPending}
-            >
-              Batal
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
-              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
-            </button>
-          </div>
-        </div>
-      </Modal>
-    </div>
-  );
-};
-
-export default VoucherPage;
 </file>
 
 <file path="src/types/domain.ts">
@@ -1878,6 +1183,58 @@ export interface AuditLog {
   username: string;
   createdAt: string;
 }
+</file>
+
+<file path="src/utils/errorHandler.ts">
+import { isAxiosError } from "axios";
+import type { ActionResult } from "../types/common";
+
+export const handleApiError = (error: unknown): ActionResult => {
+  if (import.meta.env.DEV) {
+    console.error("API Request failed:", error);
+  }
+
+  if (isAxiosError(error)) {
+    return {
+      success: false,
+      message:
+        error.response?.data?.message ||
+        "Terjadi kesalahan pada server. Silakan coba lagi.",
+      errors: error.response?.data?.error,
+    };
+  }
+
+  return {
+    success: false,
+    message:
+      error instanceof Error
+        ? error.message
+        : "Terjadi kesalahan tidak terduga.",
+  };
+};
+
+// Helper baru untuk map error field ke state form UI
+export const applyApiErrors = <T>(
+  error: unknown,
+  setFormErrors: React.Dispatch<
+    React.SetStateAction<Partial<Record<keyof T, string>>>
+  >,
+) => {
+  const result = handleApiError(error);
+  if (
+    result.errors &&
+    Array.isArray(result.errors) &&
+    result.errors.length > 0
+  ) {
+    const newErrors: Record<string, string> = {};
+    result.errors.forEach((err) => {
+      newErrors[err.field] = err.message;
+    });
+    setFormErrors(newErrors as Partial<Record<keyof T, string>>);
+  } else {
+    alert(result.message);
+  }
+};
 </file>
 
 <file path="src/components/shared/DataTable.tsx">
@@ -2634,6 +1991,850 @@ const Dashboard = () => {
 export default Dashboard;
 </file>
 
+<file path="src/pages/Kategori.tsx">
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '../lib/axios';
+import DataTable, { type Column } from '../components/shared/DataTable';
+import Modal from '../components/shared/Modal';
+import Input from '../components/shared/Input';
+import Select from '../components/shared/Select';
+import { applyApiErrors, handleApiError } from '../utils/errorHandler';
+import { formatDate } from '../utils/formatters';
+import { BusinessUnit, type Kategori as KategoriType } from '../types/domain';
+
+
+interface PaginatedResponse<T> {
+  items: T[];
+  meta: {
+    nextCursor: number | null;
+    hasNextPage: boolean;
+  };
+}
+
+
+interface KategoriFormPayload {
+  nama: string;
+  businessUnit: BusinessUnit | '';
+}
+type KategoriTableItem = KategoriType & Record<string, unknown>;
+
+const initialFormState: KategoriFormPayload = {
+  nama: '',
+  businessUnit: '',
+};
+
+const Kategori = () => {
+  const queryClient = useQueryClient();
+
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+
+  const [cursorHistory, setCursorHistory] = useState<(number | undefined)[]>([undefined]);
+  const currentCursor = cursorHistory[cursorHistory.length - 1];
+
+
+  const [formData, setFormData] = useState<KategoriFormPayload>(initialFormState);
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof KategoriFormPayload, string>>>({});
+
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['categories', searchTerm, currentCursor],
+    queryFn: async () => {
+      const params = new URLSearchParams({ limit: '10' });
+      if (searchTerm) params.append('search', searchTerm);
+      if (currentCursor) params.append('cursor', currentCursor.toString());
+
+      const response = await api.get<{ data: PaginatedResponse<KategoriType> }>(`/categories?${params.toString()}`);
+      return response.data.data;
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (payload: KategoriFormPayload) => {
+      await api.post('/categories', payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['categories-all'] });
+      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
+      handleCloseModal();
+    },
+    onError: (error) => applyApiErrors(error, setFormErrors) // <- UPDATE DISINI
+  });
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: Partial<KategoriFormPayload> }) => {
+      await api.patch(`/categories/${id}`, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      handleCloseModal();
+    },
+    onError: (error) => applyApiErrors(error, setFormErrors)
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/categories/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    },
+    onError: (error) => {
+      const result = handleApiError(error);
+      alert(result.message);
+    }
+  });
+
+
+  const handleSearch = (val: string) => {
+    setSearchTerm(val);
+    setCursorHistory([undefined]);
+  };
+
+  const handleNextPage = () => {
+    if (data?.meta.hasNextPage && data.meta.nextCursor) {
+      setCursorHistory((prev) => [...prev, data.meta.nextCursor as number]);
+    }
+  };
+
+  const handlePrevPage = () => {
+    setCursorHistory((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
+  };
+
+  const handleOpenModal = (kategori?: KategoriType) => {
+    setFormErrors({});
+    if (kategori) {
+      setEditingId(kategori.id);
+      setFormData({
+        nama: kategori.nama,
+        businessUnit: kategori.businessUnit,
+      });
+    } else {
+      setEditingId(null);
+      setFormData(initialFormState);
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setFormData(initialFormState);
+    setFormErrors({});
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (formErrors[name as keyof KategoriFormPayload]) {
+      setFormErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors: Partial<Record<keyof KategoriFormPayload, string>> = {};
+    if (!formData.nama || formData.nama.length < 3) {
+      errors.nama = 'Nama kategori minimal 3 karakter';
+    }
+    if (!formData.businessUnit) {
+      errors.businessUnit = 'Business Unit wajib dipilih';
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!validateForm()) return;
+
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, payload: formData });
+    } else {
+      createMutation.mutate(formData as KategoriFormPayload);
+    }
+  };
+
+  const handleDelete = (kategori: KategoriType) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus kategori "${kategori.nama}"?`)) {
+      deleteMutation.mutate(kategori.id);
+    }
+  };
+
+
+  const columns: Column<KategoriType>[] = [
+    { header: 'Nama Kategori', accessor: 'nama' },
+    {
+      header: 'Business Unit',
+      accessor: 'businessUnit',
+      render: (val) => (
+        <span className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-wider ${val === BusinessUnit.PADEL
+          ? 'bg-blue-50 text-blue-600 border border-blue-200'
+          : 'bg-orange-50 text-orange-600 border border-orange-200'
+          }`}>
+          {String(val)}
+        </span>
+      )
+    },
+    {
+      header: 'Dibuat Pada',
+      accessor: 'createdAt',
+      render: (val) => <span className="text-slate-500">{formatDate(String(val))}</span>
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Kategori</h1>
+        <p className="text-sm text-slate-500">Kelola kategori produk untuk Padel dan Cafe.</p>
+      </div>
+
+      <DataTable<KategoriTableItem>
+        title="Daftar Kategori"
+        columns={columns}
+        data={(data?.items as KategoriTableItem[]) || []}
+        isLoading={isLoading}
+        serverSide={true}
+        searchTerm={searchTerm}
+        onSearchChange={handleSearch}
+        onAdd={() => handleOpenModal()}
+        onEdit={handleOpenModal}
+        onDelete={handleDelete}
+        hasNextPage={data?.meta.hasNextPage}
+        hasPrevPage={cursorHistory.length > 1}
+        onNextPage={handleNextPage}
+        onPrevPage={handlePrevPage}
+      />
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title={editingId ? 'Edit Kategori' : 'Tambah Kategori Baru'}
+      >
+        <div className="flex flex-col gap-4">
+          <Input
+            label="Nama Kategori"
+            name="nama"
+            placeholder="Masukkan nama kategori..."
+            value={formData.nama}
+            onChange={handleChange}
+            error={formErrors.nama}
+            disabled={createMutation.isPending || updateMutation.isPending}
+          />
+          <Select
+            label="Business Unit"
+            name="businessUnit"
+            value={formData.businessUnit}
+            onChange={handleChange}
+            error={formErrors.businessUnit}
+            disabled={createMutation.isPending || updateMutation.isPending}
+            options={[
+              { value: BusinessUnit.PADEL, label: 'Padel' },
+              { value: BusinessUnit.CAFE, label: 'Cafe' },
+            ]}
+          />
+
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-100">
+            <button
+              onClick={handleCloseModal}
+              className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+export default Kategori;
+</file>
+
+<file path="src/pages/Login.tsx">
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import api from '../lib/axios';
+import Input from '../components/shared/Input';
+import { applyApiErrors } from '../utils/errorHandler';
+import { Package } from 'lucide-react';
+
+const Login = () => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof typeof formData, string>>>({});
+
+  const loginMutation = useMutation({
+    mutationFn: async (payload: typeof formData) => {
+      const response = await api.post('/auth/login', payload);
+      return response.data.data;
+    },
+    onSuccess: (data) => {
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      navigate('/', { replace: true });
+    },
+    onError: (error) => applyApiErrors(error, setFormErrors)
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Reset error text saat user mengetik
+    if (formErrors[e.target.name as keyof typeof formData]) {
+      setFormErrors((prev) => ({ ...prev, [e.target.name]: undefined }));
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    loginMutation.mutate(formData);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-500/10 blur-3xl rounded-full"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-emerald-500/10 blur-3xl rounded-full"></div>
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <div className="flex justify-center">
+          <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-600/20">
+            <Package size={32} />
+          </div>
+        </div>
+        <h2 className="mt-6 text-center text-3xl font-black text-slate-900 tracking-tight">
+          Login ke Raku
+        </h2>
+        <p className="mt-2 text-center text-sm text-slate-500 font-medium">
+          Sistem ERP Point of Sale & Inventory
+        </p>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <div className="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-[24px] sm:px-10 border border-slate-100">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <Input
+              label="Email Address"
+              name="email"
+              type="email"
+              placeholder="admin@gmail.com"
+              value={formData.email}
+              onChange={handleChange}
+              error={formErrors.email}
+              required
+            />
+
+            <Input
+              label="Password"
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={handleChange}
+              error={formErrors.password}
+              required
+            />
+
+            <div>
+              <button
+                type="submit"
+                disabled={loginMutation.isPending}
+                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] cursor-pointer"
+              >
+                {loginMutation.isPending ? 'Memverifikasi...' : 'Masuk Sistem'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
+</file>
+
+<file path="src/pages/Voucher.tsx">
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '../lib/axios';
+import DataTable, { type Column } from '../components/shared/DataTable';
+import Modal from '../components/shared/Modal';
+import Input from '../components/shared/Input';
+import Select from '../components/shared/Select';
+import { applyApiErrors, handleApiError } from '../utils/errorHandler';
+import { formatDate } from '../utils/formatters';
+import type { Voucher } from '../types/domain';
+
+interface PaginatedResponse<T> {
+  items: T[];
+  meta: {
+    nextCursor: number | null;
+    hasNextPage: boolean;
+  };
+}
+
+type VoucherTableItem = Voucher & Record<string, unknown>;
+
+interface VoucherFormPayload {
+  nama: string;
+  persentase: number | '';
+  isActive: string;
+}
+
+const initialFormState: VoucherFormPayload = {
+  nama: '',
+  persentase: '',
+  isActive: 'true',
+};
+
+const VoucherPage = () => {
+  const queryClient = useQueryClient();
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [cursorHistory, setCursorHistory] = useState<(number | undefined)[]>([undefined]);
+  const currentCursor = cursorHistory[cursorHistory.length - 1];
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [formData, setFormData] = useState<VoucherFormPayload>(initialFormState);
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof VoucherFormPayload, string>>>({});
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['vouchers', searchTerm, currentCursor],
+    queryFn: async () => {
+      const params = new URLSearchParams({ limit: '10' });
+      if (searchTerm) params.append('search', searchTerm);
+      if (currentCursor) params.append('cursor', currentCursor.toString());
+
+      const response = await api.get<{ data: PaginatedResponse<Voucher> }>(`/vouchers?${params.toString()}`);
+      return response.data.data;
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (payload: { nama: string; persentase: number; isActive: boolean }) => {
+      await api.post('/vouchers', payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vouchers'] });
+      queryClient.invalidateQueries({ queryKey: ['vouchers-active'] });
+      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
+      handleCloseModal();
+    },
+    onError: (error) => applyApiErrors(error, setFormErrors),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: Partial<{ nama: string; persentase: number; isActive: boolean }> }) => {
+      await api.patch(`/vouchers/${id}`, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vouchers'] });
+      handleCloseModal();
+    },
+    onError: (error) => applyApiErrors(error, setFormErrors),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/vouchers/${id}`);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vouchers'] }),
+    onError: (error) => alert(handleApiError(error).message),
+  });
+
+  const handleSearch = (val: string) => {
+    setSearchTerm(val);
+    setCursorHistory([undefined]);
+  };
+
+  const handleNextPage = () => {
+    if (data?.meta.hasNextPage && data.meta.nextCursor) {
+      setCursorHistory((prev) => [...prev, data.meta.nextCursor as number]);
+    }
+  };
+
+  const handlePrevPage = () => {
+    setCursorHistory((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
+  };
+
+  const handleOpenModal = (voucher?: Voucher) => {
+    setFormErrors({});
+    if (voucher) {
+      setEditingId(voucher.id);
+      setFormData({
+        nama: voucher.nama,
+        persentase: voucher.persentase,
+        isActive: voucher.isActive ? 'true' : 'false',
+      });
+    } else {
+      setEditingId(null);
+      setFormData(initialFormState);
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setFormData(initialFormState);
+    setFormErrors({});
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'number' ? (value === '' ? '' : Number(value)) : value,
+    }));
+    if (formErrors[name as keyof VoucherFormPayload]) {
+      setFormErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors: Partial<Record<keyof VoucherFormPayload, string>> = {};
+    if (!formData.nama || formData.nama.length < 3) {
+      errors.nama = 'Nama voucher minimal 3 karakter';
+    }
+    if (formData.persentase === '' || formData.persentase < 0 || formData.persentase > 100) {
+      errors.persentase = 'Persentase harus antara 0 dan 100';
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!validateForm()) return;
+
+    const payload = {
+      nama: formData.nama,
+      persentase: Number(formData.persentase),
+      isActive: formData.isActive === 'true',
+    };
+
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, payload });
+    } else {
+      createMutation.mutate(payload);
+    }
+  };
+
+  const handleDelete = (voucher: Voucher) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus voucher "${voucher.nama}"?`)) {
+      deleteMutation.mutate(voucher.id);
+    }
+  };
+
+  const columns: Column<VoucherTableItem>[] = [
+    { header: 'Nama Voucher', accessor: 'nama', render: (val) => <span className="font-bold text-slate-800">{String(val)}</span> },
+    {
+      header: 'Persentase Diskon',
+      accessor: 'persentase',
+      render: (val) => <span className="font-bold text-indigo-600">{Number(val)}%</span>
+    },
+    {
+      header: 'Status',
+      accessor: 'isActive',
+      render: (val) => (
+        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider ${val ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+          }`}>
+          {val ? 'AKTIF' : 'NONAKTIF'}
+        </span>
+      )
+    },
+    {
+      header: 'Dibuat Pada',
+      accessor: 'createdAt',
+      render: (val) => <span className="text-slate-500">{formatDate(String(val))}</span>
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Voucher & Diskon</h1>
+        <p className="text-sm text-slate-500">Kelola master data voucher dan preset diskon untuk kasir.</p>
+      </div>
+
+      <DataTable<VoucherTableItem>
+        title="Daftar Voucher"
+        columns={columns}
+        data={(data?.items as VoucherTableItem[]) || []}
+        isLoading={isLoading}
+        serverSide={true}
+        searchTerm={searchTerm}
+        onSearchChange={handleSearch}
+        onAdd={() => handleOpenModal()}
+        onEdit={(row) => handleOpenModal(row as Voucher)}
+        onDelete={(row) => handleDelete(row as Voucher)}
+        hasNextPage={data?.meta.hasNextPage}
+        hasPrevPage={cursorHistory.length > 1}
+        onNextPage={handleNextPage}
+        onPrevPage={handlePrevPage}
+      />
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title={editingId ? 'Edit Voucher' : 'Tambah Voucher Baru'}
+      >
+        <div className="flex flex-col gap-4">
+          <Input
+            label="Nama Voucher"
+            name="nama"
+            placeholder="Contoh: Karyawan, Driver, Promo Kemerdekaan..."
+            value={formData.nama}
+            onChange={handleChange}
+            error={formErrors.nama}
+            disabled={createMutation.isPending || updateMutation.isPending}
+          />
+          <Input
+            label="Persentase Diskon (%)"
+            name="persentase"
+            type="number"
+            placeholder="Contoh: 40, 20, 10..."
+            value={formData.persentase}
+            onChange={handleChange}
+            error={formErrors.persentase}
+            disabled={createMutation.isPending || updateMutation.isPending}
+          />
+          <Select
+            label="Status Voucher"
+            name="isActive"
+            value={formData.isActive}
+            onChange={handleChange}
+            disabled={createMutation.isPending || updateMutation.isPending}
+            options={[
+              { value: 'true', label: 'Aktif' },
+              { value: 'false', label: 'Nonaktif' },
+            ]}
+          />
+
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-100">
+            <button
+              onClick={handleCloseModal}
+              className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+export default VoucherPage;
+</file>
+
+<file path="src/components/Navbar.tsx">
+import { useLocation } from 'react-router-dom';
+import { Menu } from 'lucide-react';
+
+interface NavbarProps {
+  toggleMobileMenu: () => void;
+}
+
+const Navbar = ({ toggleMobileMenu }: NavbarProps) => {
+  const location = useLocation();
+
+  const getPageTitle = () => {
+    switch (location.pathname) {
+      case '/': return 'Dashboard';
+      case '/kategori': return 'Manajemen Kategori';
+      case '/produk': return 'Manajemen Produk & Stok';
+      case '/voucher': return 'Manajemen Voucher';
+      case '/transaksi': return 'Point of Sale (POS)';
+      case '/history-transaksi': return 'Riwayat Transaksi';
+      case '/audit-logs': return 'Audit Log Sistem';
+      default: return 'Raku ERP';
+    }
+  };
+
+  return (
+
+    <header className="h-[72px] glass-effect flex items-center justify-between px-6 lg:px-8 flex-shrink-0 z-40 sticky top-0 transition-all duration-300">
+      <div className="flex items-center gap-4">
+        <button
+          onClick={toggleMobileMenu}
+          className="p-2 -ml-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all cursor-pointer lg:hidden active:scale-95"
+        >
+          <Menu size={24} strokeWidth={2.5} />
+        </button>
+
+        <h2 className="text-lg lg:text-xl font-black text-slate-800 tracking-tight line-clamp-1">
+          {getPageTitle()}
+        </h2>
+      </div>
+    </header>
+  );
+};
+
+export default Navbar;
+</file>
+
+<file path="src/components/Sidebar.tsx">
+import { NavLink, useNavigate } from 'react-router-dom';
+import {
+  LayoutDashboard, Tags, Package, ArrowRightLeft,
+  LogOut, Ticket, ChevronLeft, ChevronRight, X,
+  ShieldCheck, Zap
+} from 'lucide-react';
+
+interface SidebarProps {
+  isExpanded: boolean;
+  setIsExpanded: (val: boolean) => void;
+  isMobileOpen: boolean;
+  setIsMobileOpen: (val: boolean) => void;
+}
+
+const Sidebar = ({ isExpanded, setIsExpanded, isMobileOpen, setIsMobileOpen }: SidebarProps) => {
+  const navigate = useNavigate();
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : { username: 'Admin', role: 'SUPERADMIN' };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
+  const menuItems = [
+    { title: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { title: 'Kategori', path: '/kategori', icon: Tags },
+    { title: 'Voucher', path: '/voucher', icon: Ticket },
+    { title: 'Produk & Stok', path: '/produk', icon: Package },
+    { title: 'Transaksi POS', path: '/transaksi', icon: Zap },
+    { title: 'History Transaksi', path: '/history-transaksi', icon: ArrowRightLeft },
+    { title: 'Audit Log', path: '/audit-logs', icon: ShieldCheck },
+  ];
+
+  return (
+    <>
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`fixed lg:static inset-y-0 left-0 z-50 bg-[#0B1120] text-slate-300 flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out shadow-2xl lg:shadow-none
+          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${isExpanded ? 'w-[260px]' : 'w-[84px]'}
+        `}
+      >
+        <div className="h-[72px] flex items-center justify-between px-5 border-b border-white/5">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20">
+              <span className="text-white font-black text-sm">R</span>
+            </div>
+            <h1 className={`text-white font-black text-xl tracking-tight transition-all duration-300 whitespace-nowrap ${isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 w-0'}`}>
+              Raku.
+            </h1>
+          </div>
+
+          <button className="lg:hidden p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg" onClick={() => setIsMobileOpen(false)}>
+            <X size={20} />
+          </button>
+
+          <button
+            className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer shrink-0"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            {isExpanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+          </button>
+        </div>
+
+        <nav className="flex-1 py-6 px-3 space-y-1.5 overflow-y-auto custom-scrollbar">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={() => window.innerWidth < 1024 && setIsMobileOpen(false)}
+                title={!isExpanded ? item.title : undefined}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 py-3 rounded-xl transition-all duration-200 font-semibold text-sm group relative overflow-hidden ${isActive
+                    ? 'bg-indigo-500/10 text-indigo-400'
+                    : 'hover:bg-white/5 hover:text-slate-200 text-slate-400'
+                  } ${!isExpanded ? 'px-0 justify-center' : 'px-4'}`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    {/* Indikator aktif di sebelah kiri */}
+                    {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-indigo-500 rounded-r-full" />}
+                    <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className="shrink-0 z-10" />
+                    <span className={`transition-all duration-300 whitespace-nowrap z-10 ${isExpanded ? 'opacity-100' : 'opacity-0 w-0 hidden'}`}>
+                      {item.title}
+                    </span>
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
+        </nav>
+
+        <div className="p-4 border-t border-white/5">
+          <div className={`flex items-center ${isExpanded ? 'justify-between px-3 py-3 bg-white/5' : 'justify-center py-3 bg-transparent'} rounded-2xl transition-all duration-300 border border-white/5`}>
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                {user.username.charAt(0)}
+              </div>
+              <div className={`flex flex-col transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 w-0 hidden'}`}>
+                <span className="text-sm font-bold text-white leading-tight truncate">{user.username}</span>
+                <span className="text-[11px] text-slate-400 mt-0.5 font-medium truncate">{user.role}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className={`text-slate-400 hover:text-rose-400 p-2 rounded-xl hover:bg-rose-400/10 transition-colors cursor-pointer shrink-0 ${!isExpanded && 'hidden'}`}
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
+
+          {!isExpanded && (
+            <button
+              onClick={handleLogout}
+              className="mt-2 w-full flex justify-center text-slate-400 hover:text-rose-400 p-3 rounded-xl hover:bg-rose-400/10 transition-colors"
+            >
+              <LogOut size={20} />
+            </button>
+          )}
+        </div>
+      </aside>
+    </>
+  );
+};
+
+export default Sidebar;
+</file>
+
 <file path="src/pages/Produk.tsx">
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -2644,7 +2845,7 @@ import Input from '../components/shared/Input';
 import Select from '../components/shared/Select';
 import CurrencyInput from '../components/shared/CurrencyInput';
 import FileInput from '../components/shared/FileInput';
-import { handleApiError } from '../utils/errorHandler';
+import { applyApiErrors, handleApiError } from '../utils/errorHandler';
 import { ProductType, type Produk as ProdukType, type Kategori as KategoriType } from '../types/domain';
 
 interface PaginatedResponse<T> {
@@ -2724,7 +2925,7 @@ const Produk = () => {
       queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
       handleCloseModal();
     },
-    onError: (error) => alert(handleApiError(error).message)
+    onError: (error) => applyApiErrors(error, setFormErrors)
   });
 
   const updateMutation = useMutation({
@@ -2735,7 +2936,7 @@ const Produk = () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       handleCloseModal();
     },
-    onError: (error) => alert(handleApiError(error).message)
+    onError: (error) => applyApiErrors(error, setFormErrors)
   });
 
   const deleteMutation = useMutation({
@@ -2994,193 +3195,6 @@ const Produk = () => {
 };
 
 export default Produk;
-</file>
-
-<file path="src/components/Navbar.tsx">
-import { useLocation } from 'react-router-dom';
-import { Menu } from 'lucide-react';
-
-interface NavbarProps {
-  toggleMobileMenu: () => void;
-}
-
-const Navbar = ({ toggleMobileMenu }: NavbarProps) => {
-  const location = useLocation();
-
-  const getPageTitle = () => {
-    switch (location.pathname) {
-      case '/': return 'Dashboard';
-      case '/kategori': return 'Manajemen Kategori';
-      case '/produk': return 'Manajemen Produk & Stok';
-      case '/voucher': return 'Manajemen Voucher';
-      case '/transaksi': return 'Point of Sale (POS)';
-      case '/history-transaksi': return 'Riwayat Transaksi';
-      case '/audit-logs': return 'Audit Log Sistem';
-      default: return 'Raku ERP';
-    }
-  };
-
-  return (
-
-    <header className="h-[72px] glass-effect flex items-center justify-between px-6 lg:px-8 flex-shrink-0 z-40 sticky top-0 transition-all duration-300">
-      <div className="flex items-center gap-4">
-        <button
-          onClick={toggleMobileMenu}
-          className="p-2 -ml-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all cursor-pointer lg:hidden active:scale-95"
-        >
-          <Menu size={24} strokeWidth={2.5} />
-        </button>
-
-        <h2 className="text-lg lg:text-xl font-black text-slate-800 tracking-tight line-clamp-1">
-          {getPageTitle()}
-        </h2>
-      </div>
-    </header>
-  );
-};
-
-export default Navbar;
-</file>
-
-<file path="src/components/Sidebar.tsx">
-import { NavLink, useNavigate } from 'react-router-dom';
-import {
-  LayoutDashboard, Tags, Package, ArrowRightLeft,
-  LogOut, Ticket, ChevronLeft, ChevronRight, X,
-  ShieldCheck, Zap
-} from 'lucide-react';
-
-interface SidebarProps {
-  isExpanded: boolean;
-  setIsExpanded: (val: boolean) => void;
-  isMobileOpen: boolean;
-  setIsMobileOpen: (val: boolean) => void;
-}
-
-const Sidebar = ({ isExpanded, setIsExpanded, isMobileOpen, setIsMobileOpen }: SidebarProps) => {
-  const navigate = useNavigate();
-  const userString = localStorage.getItem('user');
-  const user = userString ? JSON.parse(userString) : { username: 'Admin', role: 'SUPERADMIN' };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
-  };
-
-  const menuItems = [
-    { title: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { title: 'Kategori', path: '/kategori', icon: Tags },
-    { title: 'Voucher', path: '/voucher', icon: Ticket },
-    { title: 'Produk & Stok', path: '/produk', icon: Package },
-    { title: 'Transaksi POS', path: '/transaksi', icon: Zap },
-    { title: 'History Transaksi', path: '/history-transaksi', icon: ArrowRightLeft },
-    { title: 'Audit Log', path: '/audit-logs', icon: ShieldCheck },
-  ];
-
-  return (
-    <>
-      {isMobileOpen && (
-        <div
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
-          onClick={() => setIsMobileOpen(false)}
-        />
-      )}
-
-      <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 bg-[#0B1120] text-slate-300 flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out shadow-2xl lg:shadow-none
-          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          ${isExpanded ? 'w-[260px]' : 'w-[84px]'}
-        `}
-      >
-        <div className="h-[72px] flex items-center justify-between px-5 border-b border-white/5">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20">
-              <span className="text-white font-black text-sm">R</span>
-            </div>
-            <h1 className={`text-white font-black text-xl tracking-tight transition-all duration-300 whitespace-nowrap ${isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 w-0'}`}>
-              Raku.
-            </h1>
-          </div>
-
-          <button className="lg:hidden p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg" onClick={() => setIsMobileOpen(false)}>
-            <X size={20} />
-          </button>
-
-          <button
-            className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer shrink-0"
-            onClick={() => setIsExpanded(!isExpanded)}
-          >
-            {isExpanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-          </button>
-        </div>
-
-        <nav className="flex-1 py-6 px-3 space-y-1.5 overflow-y-auto custom-scrollbar">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={() => window.innerWidth < 1024 && setIsMobileOpen(false)}
-                title={!isExpanded ? item.title : undefined}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 py-3 rounded-xl transition-all duration-200 font-semibold text-sm group relative overflow-hidden ${isActive
-                    ? 'bg-indigo-500/10 text-indigo-400'
-                    : 'hover:bg-white/5 hover:text-slate-200 text-slate-400'
-                  } ${!isExpanded ? 'px-0 justify-center' : 'px-4'}`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    {/* Indikator aktif di sebelah kiri */}
-                    {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-indigo-500 rounded-r-full" />}
-                    <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className="shrink-0 z-10" />
-                    <span className={`transition-all duration-300 whitespace-nowrap z-10 ${isExpanded ? 'opacity-100' : 'opacity-0 w-0 hidden'}`}>
-                      {item.title}
-                    </span>
-                  </>
-                )}
-              </NavLink>
-            );
-          })}
-        </nav>
-
-        <div className="p-4 border-t border-white/5">
-          <div className={`flex items-center ${isExpanded ? 'justify-between px-3 py-3 bg-white/5' : 'justify-center py-3 bg-transparent'} rounded-2xl transition-all duration-300 border border-white/5`}>
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
-                {user.username.charAt(0)}
-              </div>
-              <div className={`flex flex-col transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 w-0 hidden'}`}>
-                <span className="text-sm font-bold text-white leading-tight truncate">{user.username}</span>
-                <span className="text-[11px] text-slate-400 mt-0.5 font-medium truncate">{user.role}</span>
-              </div>
-            </div>
-
-            <button
-              onClick={handleLogout}
-              className={`text-slate-400 hover:text-rose-400 p-2 rounded-xl hover:bg-rose-400/10 transition-colors cursor-pointer shrink-0 ${!isExpanded && 'hidden'}`}
-            >
-              <LogOut size={18} />
-            </button>
-          </div>
-
-          {!isExpanded && (
-            <button
-              onClick={handleLogout}
-              className="mt-2 w-full flex justify-center text-slate-400 hover:text-rose-400 p-3 rounded-xl hover:bg-rose-400/10 transition-colors"
-            >
-              <LogOut size={20} />
-            </button>
-          )}
-        </div>
-      </aside>
-    </>
-  );
-};
-
-export default Sidebar;
 </file>
 
 <file path="src/pages/Transaksi.tsx">
